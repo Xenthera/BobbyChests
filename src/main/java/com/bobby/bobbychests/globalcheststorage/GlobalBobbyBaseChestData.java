@@ -1,6 +1,7 @@
 package com.bobby.bobbychests.globalcheststorage;
 
 import com.bobby.bobbychests.BobbyChests;
+import com.bobby.bobbychests.block.BobbyBaseChestBlock;
 import com.bobby.bobbychests.blockentity.BobbyBaseChestBlockEntity;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -206,6 +207,25 @@ public class GlobalBobbyBaseChestData extends SavedData {
         });
     }
 
+    /**
+     * Flip a hidden chest blockstate so observers can detect an "open" event.
+     * Both state variants should point at the same model in the blockstate json.
+     */
+    public void toggleObserverSignal(ServerLevel level, StorageKey key) {
+        forEachAttached(level, key, (targetLevel, pos) -> {
+            var state = targetLevel.getBlockState(pos);
+            if (!(state.getBlock() instanceof BobbyBaseChestBlock)) {
+                return;
+            }
+            if (!state.hasProperty(BobbyBaseChestBlock.OBSERVER_OPEN)) {
+                return;
+            }
+            boolean next = !state.getValue(BobbyBaseChestBlock.OBSERVER_OPEN);
+            // Use flags that notify neighbors; the state change is what observers actually detect.
+            targetLevel.setBlock(pos, state.setValue(BobbyBaseChestBlock.OBSERVER_OPEN, next), 3);
+        });
+    }
+
     private static void setLidOpen(ServerLevel level, DimPos dimPos, boolean open) {
         ServerLevel target = level.getServer().getLevel(dimPos.dimension());
         if (target == null) {
@@ -303,6 +323,8 @@ public class GlobalBobbyBaseChestData extends SavedData {
         this.openViewers.put(key, next);
         if (previous <= 0) {
             setAllLidsOpen(level, key, true);
+            // Only pulse observers on the closed -> open edge.
+            toggleObserverSignal(level, key);
         }
     }
 

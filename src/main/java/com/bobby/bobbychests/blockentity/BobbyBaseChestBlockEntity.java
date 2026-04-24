@@ -211,6 +211,14 @@ public class BobbyBaseChestBlockEntity extends ChestBlockEntity {
                     }
                 }
                 BobbyBaseChestBlockEntity.this.signalOpenCount(level, pos, state, oldCount, newCount);
+                if (level instanceof ServerLevel serverLevel && oldCount <= 0 && newCount > 0) {
+                    GlobalBobbyBaseChestData data = GlobalBobbyBaseChestData.get(serverLevel);
+                    GlobalBobbyBaseChestData.StorageKey key = data.keyForChest(BobbyBaseChestBlockEntity.this);
+                    // Private (non-public) keys don't use the shared viewer-count mechanism.
+                    if (data.getPublicOpenViewerCount(key) <= 0) {
+                        data.toggleObserverSignal(serverLevel, key);
+                    }
+                }
             }
         };
     }

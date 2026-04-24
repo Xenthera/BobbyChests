@@ -22,17 +22,34 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.ScheduledTickAccess;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.ChestType;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
 
 public class BobbyBaseChestBlock extends ChestBlock {
+    /**
+     * Hidden state used to force a blockstate change on open/close so observers can detect it.
+     * This does not affect rendering (both variants map to the same model in the blockstate json).
+     */
+    public static final BooleanProperty OBSERVER_OPEN = BooleanProperty.create("observer_open");
+
     public BobbyBaseChestBlock(Properties properties) {
         super(ModBlockEntities.BOBBY_BASE_CHEST::get, SoundEvents.ENDER_CHEST_OPEN, SoundEvents.ENDER_CHEST_CLOSE, properties.sound(SoundType.COPPER).lightLevel(state -> 7));
-        this.registerDefaultState(this.defaultBlockState().setValue(TYPE, ChestType.SINGLE));
+        this.registerDefaultState(this.defaultBlockState()
+                .setValue(TYPE, ChestType.SINGLE)
+                .setValue(OBSERVER_OPEN, false));
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        super.createBlockStateDefinition(builder);
+        builder.add(OBSERVER_OPEN);
     }
     @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
@@ -109,7 +126,7 @@ public class BobbyBaseChestBlock extends ChestBlock {
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         BlockState state = super.getStateForPlacement(context);
         if(state == null) return null;
-        return state.setValue(TYPE, ChestType.SINGLE);
+        return state.setValue(TYPE, ChestType.SINGLE).setValue(OBSERVER_OPEN, false);
     }
 
     @Override
