@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:oak_planks"
+  ],
+  "result": {
+    "id": "bobbychests:wooden_chest",
+    "count": 1
+  }
+}
+

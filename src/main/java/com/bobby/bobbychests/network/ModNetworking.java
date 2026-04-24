@@ -1,6 +1,7 @@
 package com.bobby.bobbychests.network;
 
-import com.bobby.bobbychests.blockentity.BobbyBaseChestBlockEntity;
+import com.bobby.bobbychests.blockentity.TieredGlobalChest;
+import com.bobby.bobbychests.menu.EmeraldChestMenu;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -16,7 +17,7 @@ public final class ModNetworking {
                             return;
                         }
                         BlockEntity be = level.getBlockEntity(payload.pos());
-                        if (be instanceof BobbyBaseChestBlockEntity chest) {
+                        if (be instanceof TieredGlobalChest chest) {
                             chest.setGlobalStorageId(payload.id());
                         }
                     });
@@ -27,7 +28,7 @@ public final class ModNetworking {
                             return;
                         }
                         BlockEntity be = level.getBlockEntity(payload.pos());
-                        if (!(be instanceof BobbyBaseChestBlockEntity chest)) {
+                        if (!(be instanceof TieredGlobalChest chest)) {
                             return;
                         }
 
@@ -37,6 +38,17 @@ public final class ModNetworking {
                         }
 
                         chest.setLocked(payload.locked(), ctx.player());
+                    });
+                })
+                .playToServer(SetEmeraldChestScrollPayload.TYPE, SetEmeraldChestScrollPayload.STREAM_CODEC, (payload, ctx) -> {
+                    ctx.enqueueWork(() -> {
+                        if (!(ctx.player().containerMenu instanceof EmeraldChestMenu menu)) {
+                            return;
+                        }
+                        if (!menu.getChestPos().equals(payload.pos())) {
+                            return;
+                        }
+                        menu.setScrollRows(payload.scrollRows());
                     });
                 });
     }

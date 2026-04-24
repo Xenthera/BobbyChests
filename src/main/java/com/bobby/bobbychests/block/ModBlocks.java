@@ -17,11 +17,47 @@ public class ModBlocks {
 
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(BobbyChests.MODID);
 
-    public static final DeferredBlock<Block> BOBBY_BASE_CHEST = registerBlock("bobby_base_chest",
-            props -> new BobbyBaseChestBlock(props
+    public static final DeferredBlock<Block> WOODEN_CHEST = registerBlock("wooden_chest",
+            props -> new WoodenChestBlock(props
                     .strength(1)
                     .sound(SoundType.WOOD))
-            );
+    );
+
+    public static final DeferredBlock<Block> COPPER_CHEST = registerBlock("copper_chest",
+            props -> new CopperChestBlock(props
+                    .strength(1.5f)
+                    .sound(SoundType.COPPER))
+    );
+
+    public static final DeferredBlock<Block> IRON_CHEST = registerBlock("iron_chest",
+            props -> new IronChestBlock(props
+                    .strength(2)
+                    .sound(SoundType.METAL))
+    );
+
+    public static final DeferredBlock<Block> GOLD_CHEST = registerBlock("gold_chest",
+            props -> new GoldChestBlock(props
+                    .strength(2)
+                    .sound(SoundType.METAL))
+    );
+
+    public static final DeferredBlock<Block> DIAMOND_CHEST = registerBlock("diamond_chest",
+            props -> new DiamondChestBlock(props
+                    .strength(3f)
+                    .sound(SoundType.METAL))
+    );
+
+    public static final DeferredBlock<Block> EMERALD_CHEST = registerBlock("emerald_chest",
+            props -> new EmeraldChestBlock(props
+                    .strength(3.5f)
+                    .sound(SoundType.METAL))
+    );
+
+    public static final DeferredBlock<Block> DIRT_CHEST = registerBlock("dirt_chest",
+            props -> new DirtChestBlock(props
+                    .strength(0.5f)
+                    .sound(SoundType.GRAVEL))
+    );
 
     // Helper to register block and a block item from it
     private static <T extends Block> DeferredBlock<T> registerBlock(String name, Function<BlockBehaviour.Properties, T> function) {

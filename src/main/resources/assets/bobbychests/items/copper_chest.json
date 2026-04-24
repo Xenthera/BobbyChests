@@ -1,0 +1,11 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "minecraft:item/chest",
+    "model": {
+      "type": "minecraft:chest",
+      "texture": "bobbychests:copper_chest"
+    }
+  }
+}
+

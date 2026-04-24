@@ -1,8 +1,20 @@
 package com.bobby.bobbychests;
 
 import com.bobby.bobbychests.blockentity.ModBlockEntities;
-import com.bobby.bobbychests.client.render.BobbyBaseChestRenderer;
-import com.bobby.bobbychests.client.screen.BobbyBaseChestScreen;
+import com.bobby.bobbychests.client.render.DirtChestRenderer;
+import com.bobby.bobbychests.client.render.CopperChestRenderer;
+import com.bobby.bobbychests.client.render.IronChestRenderer;
+import com.bobby.bobbychests.client.render.GoldChestRenderer;
+import com.bobby.bobbychests.client.render.DiamondChestRenderer;
+import com.bobby.bobbychests.client.render.EmeraldChestRenderer;
+import com.bobby.bobbychests.client.render.WoodenChestRenderer;
+import com.bobby.bobbychests.client.screen.DirtChestScreen;
+import com.bobby.bobbychests.client.screen.CopperChestScreen;
+import com.bobby.bobbychests.client.screen.IronChestScreen;
+import com.bobby.bobbychests.client.screen.GoldChestScreen;
+import com.bobby.bobbychests.client.screen.DiamondChestScreen;
+import com.bobby.bobbychests.client.screen.EmeraldChestScreen;
+import com.bobby.bobbychests.client.screen.WoodenChestScreen;
 import com.bobby.bobbychests.menu.ModMenus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
@@ -34,10 +46,24 @@ public class BobbyChestsClient {
         BobbyChests.LOGGER.info("HELLO FROM CLIENT SETUP");
         BobbyChests.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
 
-        event.enqueueWork(() -> BlockEntityRenderers.register(ModBlockEntities.BOBBY_BASE_CHEST.get(), BobbyBaseChestRenderer::new));
+        event.enqueueWork(() -> {
+            BlockEntityRenderers.register(ModBlockEntities.WOODEN_CHEST.get(), WoodenChestRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.COPPER_CHEST.get(), CopperChestRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.IRON_CHEST.get(), IronChestRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.GOLD_CHEST.get(), GoldChestRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.DIAMOND_CHEST.get(), DiamondChestRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.EMERALD_CHEST.get(), EmeraldChestRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.DIRT_CHEST.get(), DirtChestRenderer::new);
+        });
     }
     @SubscribeEvent
     static void registerScreens(RegisterMenuScreensEvent event){
-        event.register(ModMenus.BOBBY_BASE_CHEST_MENU.get(), BobbyBaseChestScreen::new);
+        event.register(ModMenus.WOODEN_CHEST_MENU.get(), WoodenChestScreen::new);
+        event.register(ModMenus.COPPER_CHEST_MENU.get(), CopperChestScreen::new);
+        event.register(ModMenus.IRON_CHEST_MENU.get(), IronChestScreen::new);
+        event.register(ModMenus.GOLD_CHEST_MENU.get(), GoldChestScreen::new);
+        event.register(ModMenus.DIAMOND_CHEST_MENU.get(), DiamondChestScreen::new);
+        event.register(ModMenus.EMERALD_CHEST_MENU.get(), EmeraldChestScreen::new);
+        event.register(ModMenus.DIRT_CHEST_MENU.get(), DirtChestScreen::new);
     }
 }

@@ -1,0 +1,16 @@
+package com.bobby.bobbychests.blockentity;
+
+import com.bobby.bobbychests.tier.ChestTier;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
+
+public final class EmeraldChestBlockEntity extends AbstractTieredChestBlockEntity {
+    public EmeraldChestBlockEntity(BlockPos worldPosition, BlockState blockState) {
+        super(ModBlockEntities.EMERALD_CHEST.get(), worldPosition, blockState, ChestTier.EMERALD);
+    }
+
+    @Override
+    public int getSlotCount() {
+        return 18 * 12; // 216
+    }
+}

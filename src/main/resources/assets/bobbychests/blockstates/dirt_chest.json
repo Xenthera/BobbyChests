@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "observer_open=false": { "model": "bobbychests:block/dirt_chest" },
+    "observer_open=true": { "model": "bobbychests:block/dirt_chest" }
+  }
+}
+

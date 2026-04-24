@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:gold_ingot"
+  ],
+  "result": {
+    "id": "bobbychests:gold_chest",
+    "count": 1
+  }
+}
+

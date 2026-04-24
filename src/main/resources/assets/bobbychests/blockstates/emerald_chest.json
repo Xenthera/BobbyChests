@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "observer_open=false": { "model": "bobbychests:block/emerald_chest" },
+    "observer_open=true": { "model": "bobbychests:block/emerald_chest" }
+  }
+}
