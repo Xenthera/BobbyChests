@@ -1,11 +1,12 @@
 {
-  "itemGroup.bobbychests": "Example Mod Tab",
-  "block.bobbychests.example_block": "Example Block",
-  "item.bobbychests.example_item": "Example Item",
+  "itemGroup.bobbychests": "Bobby Pipes",
+  "block.bobbychests.first_chest": "First Chest",
+  "container.bobbychests.first_chest": "Große erste Truhe!! >:(",
+  "block.bobbychests.first_block_item": "Block of First Block",
 
-  "bobbychests.configuration.title": "BobbyChests Configs",
-  "bobbychests.configuration.section.bobbychests.common.toml": "BobbyChests Configs",
-  "bobbychests.configuration.section.bobbychests.common.toml.title": "BobbyChests Configs",
+  "bobbychests.configuration.title": "bobbychests Configs",
+  "bobbychests.configuration.section.bobbychests.common.toml": "bobbychests Configs",
+  "bobbychests.configuration.section.bobbychests.common.toml.title": "bobbychests Configs",
   "bobbychests.configuration.items": "Item List",
   "bobbychests.configuration.logDirtBlock": "Log Dirt Block",
   "bobbychests.configuration.magicNumberIntroduction": "Magic Number Text",

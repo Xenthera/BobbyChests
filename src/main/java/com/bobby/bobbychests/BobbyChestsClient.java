@@ -1,12 +1,18 @@
 package com.bobby.bobbychests;
 
+import com.bobby.bobbychests.blockentity.ModBlockEntities;
+import com.bobby.bobbychests.client.render.FirstChestRenderer;
+import com.bobby.bobbychests.client.screen.FirstChestScreen;
+import com.bobby.bobbychests.menu.ModMenus;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
@@ -27,5 +33,11 @@ public class BobbyChestsClient {
         // Some client setup code
         BobbyChests.LOGGER.info("HELLO FROM CLIENT SETUP");
         BobbyChests.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+
+        event.enqueueWork(() -> BlockEntityRenderers.register(ModBlockEntities.FIRST_CHEST.get(), FirstChestRenderer::new));
+    }
+    @SubscribeEvent
+    static void registerScreens(RegisterMenuScreensEvent event){
+        event.register(ModMenus.FIRST_CHEST_MENU.get(), FirstChestScreen::new);
     }
 }
