@@ -1,0 +1,13 @@
+{
+  "itemGroup.bobbychests": "Example Mod Tab",
+  "block.bobbychests.example_block": "Example Block",
+  "item.bobbychests.example_item": "Example Item",
+
+  "bobbychests.configuration.title": "BobbyChests Configs",
+  "bobbychests.configuration.section.bobbychests.common.toml": "BobbyChests Configs",
+  "bobbychests.configuration.section.bobbychests.common.toml.title": "BobbyChests Configs",
+  "bobbychests.configuration.items": "Item List",
+  "bobbychests.configuration.logDirtBlock": "Log Dirt Block",
+  "bobbychests.configuration.magicNumberIntroduction": "Magic Number Text",
+  "bobbychests.configuration.magicNumber": "Magic Number"
+}
