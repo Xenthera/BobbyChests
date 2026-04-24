@@ -13,12 +13,12 @@ public class ModBlockEntities {
 
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, BobbyChests.MODID);
 
-    public static final Supplier<BlockEntityType<FirstChestBlockEntity>> FIRST_CHEST = BLOCK_ENTITIES.register(
-                    "first_chest",
+    public static final Supplier<BlockEntityType<BobbyBaseChestBlockEntity>> BOBBY_BASE_CHEST = BLOCK_ENTITIES.register(
+                    "bobby_base_chest",
                     () -> new BlockEntityType<>(
-                            FirstChestBlockEntity::new,
+                            BobbyBaseChestBlockEntity::new,
                             false,
-                            ModBlocks.FIRST_CHEST.get()
+                            ModBlocks.BOBBY_BASE_CHEST.get()
                     )
             );
 

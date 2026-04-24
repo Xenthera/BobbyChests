@@ -1,6 +1,6 @@
 package com.bobby.bobbychests.network;
 
-import com.bobby.bobbychests.blockentity.FirstChestBlockEntity;
+import com.bobby.bobbychests.blockentity.BobbyBaseChestBlockEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -16,7 +16,7 @@ public final class ModNetworking {
                             return;
                         }
                         BlockEntity be = level.getBlockEntity(payload.pos());
-                        if (be instanceof FirstChestBlockEntity chest) {
+                        if (be instanceof BobbyBaseChestBlockEntity chest) {
                             chest.setGlobalStorageId(payload.id());
                         }
                     });
@@ -27,7 +27,7 @@ public final class ModNetworking {
                             return;
                         }
                         BlockEntity be = level.getBlockEntity(payload.pos());
-                        if (!(be instanceof FirstChestBlockEntity chest)) {
+                        if (!(be instanceof BobbyBaseChestBlockEntity chest)) {
                             return;
                         }
 

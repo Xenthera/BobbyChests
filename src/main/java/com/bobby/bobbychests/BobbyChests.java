@@ -4,7 +4,7 @@ import com.bobby.bobbychests.block.ModBlocks;
 import com.bobby.bobbychests.blockentity.ModBlockEntities;
 import com.bobby.bobbychests.capabilities.ModCapabilities;
 import com.bobby.bobbychests.item.ModItems;
-import com.bobby.bobbychests.menu.FirstChestLogoutHandler;
+import com.bobby.bobbychests.menu.BobbyBaseChestLogoutHandler;
 import com.bobby.bobbychests.menu.ModMenus;
 import com.bobby.bobbychests.network.ModNetworking;
 import org.slf4j.Logger;
@@ -54,9 +54,9 @@ public class BobbyChests {
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> EXAMPLE_TAB = CREATIVE_MODE_TABS.register("example_tab", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.bobbychests")) //The language key for the title of your CreativeModeTab
             .withTabsBefore(CreativeModeTabs.COMBAT)
-            .icon(() -> ModBlocks.FIRST_CHEST.get().asItem().getDefaultInstance())
+            .icon(() -> ModBlocks.BOBBY_BASE_CHEST.get().asItem().getDefaultInstance())
             .displayItems((parameters, output) -> {
-                output.accept(ModBlocks.FIRST_CHEST.get()); // Add the example item to the tab. For your own tabs, this method is preferred over the event
+                output.accept(ModBlocks.BOBBY_BASE_CHEST.get()); // Add the example item to the tab. For your own tabs, this method is preferred over the event
             }).build());
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.
@@ -79,7 +79,7 @@ public class BobbyChests {
         // Note that this is necessary if and only if we want *this* class (BobbyPipes) to respond directly to events.
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         NeoForge.EVENT_BUS.register(this);
-        NeoForge.EVENT_BUS.addListener(FirstChestLogoutHandler::onPlayerLoggedOut);
+        NeoForge.EVENT_BUS.addListener(BobbyBaseChestLogoutHandler::onPlayerLoggedOut);
 
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us

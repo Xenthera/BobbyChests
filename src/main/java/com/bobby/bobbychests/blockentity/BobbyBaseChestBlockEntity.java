@@ -1,8 +1,8 @@
 package com.bobby.bobbychests.blockentity;
 
-import com.bobby.bobbychests.globalcheststorage.GlobalFirstChestContainer;
-import com.bobby.bobbychests.globalcheststorage.GlobalFirstChestData;
-import com.bobby.bobbychests.menu.FirstChestMenu;
+import com.bobby.bobbychests.globalcheststorage.GlobalBobbyBaseChestContainer;
+import com.bobby.bobbychests.globalcheststorage.GlobalBobbyBaseChestData;
+import com.bobby.bobbychests.menu.BobbyBaseChestMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
-public class FirstChestBlockEntity extends ChestBlockEntity {
+public class BobbyBaseChestBlockEntity extends ChestBlockEntity {
 
     private static final String TAG_GLOBAL_STORAGE_ID = "bobbychests:global_storage_id";
     private static final String TAG_LOCKED = "bobbychests:locked";
@@ -37,7 +37,7 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
     private int globalStorageId;
     private boolean locked;
     private UUID ownerUuid;
-    private final ResourceHandler<ItemResource> itemResourceHandler = new FirstChestItemResourceHandler(this);
+    private final ResourceHandler<ItemResource> itemResourceHandler = new BobbyBaseChestItemResourceHandler(this);
 
     public int getGlobalStorageId() {
         return this.globalStorageId;
@@ -45,15 +45,15 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
 
     public void setGlobalStorageId(int globalStorageId) {
         if (this.getLevel() instanceof ServerLevel serverLevel) {
-            GlobalFirstChestData data = GlobalFirstChestData.get(serverLevel);
-            GlobalFirstChestData.StorageKey oldKey = data.keyForChest(this);
+            GlobalBobbyBaseChestData data = GlobalBobbyBaseChestData.get(serverLevel);
+            GlobalBobbyBaseChestData.StorageKey oldKey = data.keyForChest(this);
             int openers = this.openersCounter.getOpenerCount();
 
             this.globalStorageId = globalStorageId;
             this.setChanged();
             data.registerOrUpdateChest(this);
 
-            GlobalFirstChestData.StorageKey newKey = data.keyForChest(this);
+            GlobalBobbyBaseChestData.StorageKey newKey = data.keyForChest(this);
             data.onChestKeyChangedWhileOpen(serverLevel, oldKey, newKey, openers);
             return;
         }
@@ -89,8 +89,8 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
 
     public void setLocked(boolean locked, Player actor) {
         if (this.getLevel() instanceof ServerLevel serverLevel) {
-            GlobalFirstChestData data = GlobalFirstChestData.get(serverLevel);
-            GlobalFirstChestData.StorageKey oldKey = data.keyForChest(this);
+            GlobalBobbyBaseChestData data = GlobalBobbyBaseChestData.get(serverLevel);
+            GlobalBobbyBaseChestData.StorageKey oldKey = data.keyForChest(this);
             int openers = this.openersCounter.getOpenerCount();
 
             this.locked = locked;
@@ -106,7 +106,7 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
             this.setChanged();
             data.registerOrUpdateChest(this);
 
-            GlobalFirstChestData.StorageKey newKey = data.keyForChest(this);
+            GlobalBobbyBaseChestData.StorageKey newKey = data.keyForChest(this);
             data.onChestKeyChangedWhileOpen(serverLevel, oldKey, newKey, openers);
             return;
         }
@@ -126,7 +126,7 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
     public void setLevel(Level level) {
         super.setLevel(level);
         if (level instanceof ServerLevel serverLevel) {
-            GlobalFirstChestData.get(serverLevel).registerOrUpdateChest(this);
+            GlobalBobbyBaseChestData.get(serverLevel).registerOrUpdateChest(this);
         }
     }
 
@@ -134,19 +134,19 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
     public void clearRemoved() {
         super.clearRemoved();
         if (this.getLevel() instanceof ServerLevel serverLevel) {
-            GlobalFirstChestData.get(serverLevel).registerOrUpdateChest(this);
+            GlobalBobbyBaseChestData.get(serverLevel).registerOrUpdateChest(this);
         }
     }
 
     @Override
     public void setRemoved() {
         if (this.getLevel() instanceof ServerLevel serverLevel) {
-            GlobalFirstChestData.get(serverLevel).unregisterChest(this);
+            GlobalBobbyBaseChestData.get(serverLevel).unregisterChest(this);
         }
         super.setRemoved();
     }
-    public FirstChestBlockEntity(BlockPos worldPosition, BlockState blockState) {
-        super(ModBlockEntities.FIRST_CHEST.get(), worldPosition, blockState);
+    public BobbyBaseChestBlockEntity(BlockPos worldPosition, BlockState blockState) {
+        super(ModBlockEntities.BOBBY_BASE_CHEST.get(), worldPosition, blockState);
         this.setItems(NonNullList.withSize(27 * 2, ItemStack.EMPTY));
 
         // ChestBlockEntity's default openersCounter only recognizes vanilla ChestMenu.
@@ -154,14 +154,14 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
         this.openersCounter = new ContainerOpenersCounter() {
             @Override
             public boolean isOwnContainer(Player player) {
-                if (!(player.containerMenu instanceof FirstChestMenu menu)) {
+                if (!(player.containerMenu instanceof BobbyBaseChestMenu menu)) {
                     return false;
                 }
                 Container c = menu.getContainer();
-                if (c == FirstChestBlockEntity.this) {
+                if (c == BobbyBaseChestBlockEntity.this) {
                     return true;
                 }
-                return c instanceof GlobalFirstChestContainer global && global.getChest() == FirstChestBlockEntity.this;
+                return c instanceof GlobalBobbyBaseChestContainer global && global.getChest() == BobbyBaseChestBlockEntity.this;
             }
 
             @Override
@@ -181,8 +181,8 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
             @Override
             protected void onClose(Level level, BlockPos pos, BlockState state) {
                 if (level instanceof ServerLevel serverLevel) {
-                    GlobalFirstChestData data = GlobalFirstChestData.get(serverLevel);
-                    GlobalFirstChestData.StorageKey key = data.keyForChest(FirstChestBlockEntity.this);
+                    GlobalBobbyBaseChestData data = GlobalBobbyBaseChestData.get(serverLevel);
+                    GlobalBobbyBaseChestData.StorageKey key = data.keyForChest(BobbyBaseChestBlockEntity.this);
                     if (data.getPublicOpenViewerCount(key) > 0) {
                         return;
                     }
@@ -202,15 +202,15 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
             @Override
             protected void openerCountChanged(Level level, BlockPos pos, BlockState state, int oldCount, int newCount) {
                 if (level instanceof ServerLevel serverLevel) {
-                    GlobalFirstChestData data = GlobalFirstChestData.get(serverLevel);
-                    GlobalFirstChestData.StorageKey key = data.keyForChest(FirstChestBlockEntity.this);
+                    GlobalBobbyBaseChestData data = GlobalBobbyBaseChestData.get(serverLevel);
+                    GlobalBobbyBaseChestData.StorageKey key = data.keyForChest(BobbyBaseChestBlockEntity.this);
                     int publicCount = data.getPublicOpenViewerCount(key);
                     if (publicCount > 0) {
-                        FirstChestBlockEntity.this.signalOpenCount(level, pos, state, oldCount, publicCount);
+                        BobbyBaseChestBlockEntity.this.signalOpenCount(level, pos, state, oldCount, publicCount);
                         return;
                     }
                 }
-                FirstChestBlockEntity.this.signalOpenCount(level, pos, state, oldCount, newCount);
+                BobbyBaseChestBlockEntity.this.signalOpenCount(level, pos, state, oldCount, newCount);
             }
         };
     }
@@ -241,7 +241,7 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
     protected NonNullList<ItemStack> getItems() {
         Level level = this.getLevel();
         if (level instanceof ServerLevel serverLevel) {
-            return GlobalFirstChestData.get(serverLevel).getItemsForChest(this);
+            return GlobalBobbyBaseChestData.get(serverLevel).getItemsForChest(this);
         }
         return this.items;
     }
@@ -310,7 +310,7 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
     public void setChanged() {
         super.setChanged();
         if (this.getLevel() instanceof ServerLevel serverLevel) {
-            GlobalFirstChestData.get(serverLevel).markChangedAndNotify(this);
+            GlobalBobbyBaseChestData.get(serverLevel).markChangedAndNotify(this);
         }
     }
 
@@ -318,13 +318,13 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
     public ItemStack removeItemNoUpdate(int slot) {
         ItemStack stack = super.removeItemNoUpdate(slot);
         if (!stack.isEmpty() && this.getLevel() instanceof ServerLevel serverLevel) {
-            GlobalFirstChestData.get(serverLevel).markChangedAndNotify(this);
+            GlobalBobbyBaseChestData.get(serverLevel).markChangedAndNotify(this);
         }
         return stack;
     }
 
     /**
-     * Vanilla {@code BaseContainerBlockEntity#clearContent} does {@code getItems().clear()}. Our {@link #getItems()}
+     * Vanilla BaseContainerBlockEntity#clearContent does getItems().clear(). Our .getItems()
      * returns the shared global list on the server, so clearing would wipe every chest's storage.
      */
     @Override
@@ -337,9 +337,9 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
     }
 
     /**
-     * Before the block entity is removed, vanilla calls {@code Containers.dropContents} on any {@link Container} BE,
+     * Before the block entity is removed, vanilla calls Containers.dropContents on any Container BE,
      * which pulls every stack out for item entities. That would empty the shared global inventory when one chest breaks.
-     * Contents stay in {@link GlobalFirstChestData}; block drops still come from the block loot table.
+     * Contents stay in GlobalFirstChestData; block drops still come from the block loot table.
      */
     @Override
     public void preRemoveSideEffects(BlockPos pos, BlockState state) {
@@ -349,10 +349,10 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
         super.preRemoveSideEffects(pos, state);
     }
 
-    private static final class FirstChestItemResourceHandler implements ResourceHandler<ItemResource> {
-        private final FirstChestBlockEntity chest;
+    private static final class BobbyBaseChestItemResourceHandler implements ResourceHandler<ItemResource> {
+        private final BobbyBaseChestBlockEntity chest;
 
-        private FirstChestItemResourceHandler(FirstChestBlockEntity chest) {
+        private BobbyBaseChestItemResourceHandler(BobbyBaseChestBlockEntity chest) {
             this.chest = chest;
         }
 
@@ -360,7 +360,7 @@ public class FirstChestBlockEntity extends ChestBlockEntity {
             if (!(this.chest.getLevel() instanceof ServerLevel serverLevel)) {
                 return null;
             }
-            return new ItemStacksResourceHandler(GlobalFirstChestData.get(serverLevel).getItemsForChest(this.chest));
+            return new ItemStacksResourceHandler(GlobalBobbyBaseChestData.get(serverLevel).getItemsForChest(this.chest));
         }
 
         @Override

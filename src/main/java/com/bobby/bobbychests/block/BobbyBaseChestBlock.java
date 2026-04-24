@@ -1,10 +1,10 @@
 package com.bobby.bobbychests.block;
 
-import com.bobby.bobbychests.blockentity.FirstChestBlockEntity;
+import com.bobby.bobbychests.blockentity.BobbyBaseChestBlockEntity;
 import com.bobby.bobbychests.blockentity.ModBlockEntities;
-import com.bobby.bobbychests.globalcheststorage.GlobalFirstChestContainer;
-import com.bobby.bobbychests.globalcheststorage.GlobalFirstChestData;
-import com.bobby.bobbychests.menu.FirstChestMenuProvider;
+import com.bobby.bobbychests.globalcheststorage.GlobalBobbyBaseChestContainer;
+import com.bobby.bobbychests.globalcheststorage.GlobalBobbyBaseChestData;
+import com.bobby.bobbychests.menu.BobbyBaseChestMenuProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -29,9 +29,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.phys.BlockHitResult;
 
-public class FirstChestBlock extends ChestBlock {
-    public FirstChestBlock(Properties properties) {
-        super(ModBlockEntities.FIRST_CHEST::get, SoundEvents.ENDER_CHEST_OPEN, SoundEvents.ENDER_CHEST_CLOSE, properties.sound(SoundType.COPPER).lightLevel(state -> 7));
+public class BobbyBaseChestBlock extends ChestBlock {
+    public BobbyBaseChestBlock(Properties properties) {
+        super(ModBlockEntities.BOBBY_BASE_CHEST::get, SoundEvents.ENDER_CHEST_OPEN, SoundEvents.ENDER_CHEST_CLOSE, properties.sound(SoundType.COPPER).lightLevel(state -> 7));
         this.registerDefaultState(this.defaultBlockState().setValue(TYPE, ChestType.SINGLE));
     }
     @Override
@@ -52,7 +52,7 @@ public class FirstChestBlock extends ChestBlock {
 
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new FirstChestBlockEntity(pos, state);
+        return new BobbyBaseChestBlockEntity(pos, state);
     }
 
     @Override
@@ -61,26 +61,26 @@ public class FirstChestBlock extends ChestBlock {
         if(super.getMenuProvider(state, level, pos) == null) return null; // Whatever logic happening in vanilla here prevents using if chest is blocked from above.
 
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (!(blockEntity instanceof FirstChestBlockEntity chest)) return null;
+        if (!(blockEntity instanceof BobbyBaseChestBlockEntity chest)) return null;
 
         ChestType type = state.getValue(ChestBlock.TYPE);
         Component title = type == ChestType.SINGLE
-                ? Component.translatable("container.bobbychests.first_chest")
-                : Component.translatable("container.bobbychests.first_chest_double");
+                ? Component.translatable("container.bobbychests.bobby_base_chest")
+                : Component.translatable("container.bobbychests.bobby_base_chest_double");
 
         if (!(level instanceof ServerLevel serverLevel)) {
             return null;
         }
-        GlobalFirstChestData global = GlobalFirstChestData.get(serverLevel);
-        GlobalFirstChestContainer globalContainer = new GlobalFirstChestContainer(global, chest);
-        return new FirstChestMenuProvider(title, globalContainer, pos, chest);
+        GlobalBobbyBaseChestData global = GlobalBobbyBaseChestData.get(serverLevel);
+        GlobalBobbyBaseChestContainer globalContainer = new GlobalBobbyBaseChestContainer(global, chest);
+        return new BobbyBaseChestMenuProvider(title, globalContainer, pos, chest);
     }
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (level instanceof ServerLevel serverLevel) {
             BlockEntity be = serverLevel.getBlockEntity(pos);
-            if (be instanceof FirstChestBlockEntity chest) {
+            if (be instanceof BobbyBaseChestBlockEntity chest) {
                 if (!chest.canPlayerOpen(player)) {
                     player.sendSystemMessage(Component.literal("This chest is locked.").withColor(ARGB.color(255, 255, 64, 64)));
                     // Consume so the held item doesn't get a chance to place.
@@ -95,7 +95,7 @@ public class FirstChestBlock extends ChestBlock {
     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (level instanceof ServerLevel serverLevel) {
             BlockEntity be = serverLevel.getBlockEntity(pos);
-            if (be instanceof FirstChestBlockEntity chest) {
+            if (be instanceof BobbyBaseChestBlockEntity chest) {
                 if (!chest.canPlayerOpen(player)) {
                     player.sendSystemMessage(Component.literal("This chest is locked.").withColor(ARGB.color(255, 255, 64, 64)));
                     return InteractionResult.CONSUME;
@@ -120,7 +120,7 @@ public class FirstChestBlock extends ChestBlock {
             updatedState = updatedState.setValue(TYPE, ChestType.SINGLE);
         }
         if (directionToNeighbour == Direction.UP && level instanceof ServerLevel serverLevel && neighbourPos.equals(pos.above())) {
-            GlobalFirstChestData.get(serverLevel).onChestAboveChanged(serverLevel, pos);
+            GlobalBobbyBaseChestData.get(serverLevel).onChestAboveChanged(serverLevel, pos);
         }
         return updatedState;
     }

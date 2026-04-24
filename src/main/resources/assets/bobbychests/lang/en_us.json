@@ -1,8 +1,7 @@
 {
-  "itemGroup.bobbychests": "Bobby Pipes",
-  "block.bobbychests.first_chest": "First Chest",
-  "container.bobbychests.first_chest": "Große erste Truhe!! >:(",
-  "block.bobbychests.first_block_item": "Block of First Block",
+  "itemGroup.bobbychests": "Bobby Chests",
+  "block.bobbychests.bobby_base_chest": "Bobby Base Chest",
+  "container.bobbychests.bobby_base_chest": "Bobby Base Chest",
 
   "bobbychests.configuration.title": "bobbychests Configs",
   "bobbychests.configuration.section.bobbychests.common.toml": "bobbychests Configs",

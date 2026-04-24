@@ -1,6 +1,6 @@
 package com.bobby.bobbychests.globalcheststorage;
 
-import com.bobby.bobbychests.blockentity.FirstChestBlockEntity;
+import com.bobby.bobbychests.blockentity.BobbyBaseChestBlockEntity;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
@@ -10,11 +10,11 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.Iterator;
 
-public class GlobalFirstChestContainer implements Container {
+public class GlobalBobbyBaseChestContainer implements Container {
 
-    private final GlobalFirstChestData data;
-    private final FirstChestBlockEntity chest;
-    public GlobalFirstChestContainer(GlobalFirstChestData data, FirstChestBlockEntity chest) {
+    private final GlobalBobbyBaseChestData data;
+    private final BobbyBaseChestBlockEntity chest;
+    public GlobalBobbyBaseChestContainer(GlobalBobbyBaseChestData data, BobbyBaseChestBlockEntity chest) {
         this.data = data;
         this.chest = chest;
     }
@@ -23,12 +23,12 @@ public class GlobalFirstChestContainer implements Container {
         return this.data.getItemsForChest(this.chest);
     }
 
-    public FirstChestBlockEntity getChest() {
+    public BobbyBaseChestBlockEntity getChest() {
         return this.chest;
     }
     @Override
     public int getContainerSize() {
-        return GlobalFirstChestData.SLOT_COUNT;
+        return GlobalBobbyBaseChestData.SLOT_COUNT;
     }
     @Override
     public boolean isEmpty() {

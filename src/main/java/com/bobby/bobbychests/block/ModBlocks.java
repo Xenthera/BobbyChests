@@ -17,8 +17,8 @@ public class ModBlocks {
 
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(BobbyChests.MODID);
 
-    public static final DeferredBlock<Block> FIRST_CHEST = registerBlock("first_chest",
-            props -> new FirstChestBlock(props
+    public static final DeferredBlock<Block> BOBBY_BASE_CHEST = registerBlock("bobby_base_chest",
+            props -> new BobbyBaseChestBlock(props
                     .strength(1)
                     .sound(SoundType.WOOD))
             );

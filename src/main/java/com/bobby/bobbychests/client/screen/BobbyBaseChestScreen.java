@@ -1,7 +1,7 @@
 package com.bobby.bobbychests.client.screen;
 
 import com.bobby.bobbychests.BobbyChests;
-import com.bobby.bobbychests.menu.FirstChestMenu;
+import com.bobby.bobbychests.menu.BobbyBaseChestMenu;
 import com.bobby.bobbychests.network.SetGlobalStorageIdPayload;
 import com.bobby.bobbychests.network.SetLockedPayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -16,8 +16,8 @@ import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
-public class FirstChestScreen extends AbstractContainerScreen<FirstChestMenu> {
-    private static final Identifier BG = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "textures/gui/first_chest_54.png");
+public class BobbyBaseChestScreen extends AbstractContainerScreen<BobbyBaseChestMenu> {
+    private static final Identifier BG = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "textures/gui/bobby_base_chest_54.png");
 
     private EditBox editBox;
     private Button lockButton;
@@ -26,7 +26,7 @@ public class FirstChestScreen extends AbstractContainerScreen<FirstChestMenu> {
     private int pendingId = Integer.MIN_VALUE;
     private long sendAfterMs = 0L;
     private static final long ID_DEBOUNCE_MS = 150L;
-    public FirstChestScreen(FirstChestMenu menu, Inventory inv, Component title) {
+    public BobbyBaseChestScreen(BobbyBaseChestMenu menu, Inventory inv, Component title) {
         super(menu, inv, title, 176, 114 + 6 * 18); // width, height of your background
         this.titleLabelX = 10;
         this.inventoryLabelX = 10;

@@ -1,7 +1,7 @@
 package com.bobby.bobbychests.globalcheststorage;
 
 import com.bobby.bobbychests.BobbyChests;
-import com.bobby.bobbychests.blockentity.FirstChestBlockEntity;
+import com.bobby.bobbychests.blockentity.BobbyBaseChestBlockEntity;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
@@ -18,7 +18,7 @@ import net.minecraft.world.level.saveddata.SavedDataType;
 
 import java.util.*;
 
-public class GlobalFirstChestData extends SavedData {
+public class GlobalBobbyBaseChestData extends SavedData {
 
     public static final int SLOT_COUNT = 54; // 9 x 6
 
@@ -38,12 +38,12 @@ public class GlobalFirstChestData extends SavedData {
     }
 
     // How Minecraft serializes this SavedData instance to disk (and back).
-    public static final Codec<GlobalFirstChestData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            StorageEntry.CODEC.listOf().optionalFieldOf("Storages", List.of()).forGetter(GlobalFirstChestData::toEntryList)
-    ).apply(instance, GlobalFirstChestData::fromEntries));
-    public static final SavedDataType<GlobalFirstChestData> TYPE = new SavedDataType<>(
-            Identifier.fromNamespaceAndPath(BobbyChests.MODID, "global_first_chest"),
-            GlobalFirstChestData::new,   // brand-new world / missing file
+    public static final Codec<GlobalBobbyBaseChestData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            StorageEntry.CODEC.listOf().optionalFieldOf("Storages", List.of()).forGetter(GlobalBobbyBaseChestData::toEntryList)
+    ).apply(instance, GlobalBobbyBaseChestData::fromEntries));
+    public static final SavedDataType<GlobalBobbyBaseChestData> TYPE = new SavedDataType<>(
+            Identifier.fromNamespaceAndPath(BobbyChests.MODID, "global_bobby_base_chest"),
+            GlobalBobbyBaseChestData::new,   // brand-new world / missing file
             CODEC
     );
 
@@ -56,13 +56,13 @@ public class GlobalFirstChestData extends SavedData {
     private final Map<StorageKey, Integer> openViewers = new HashMap<>();
 
     /** Used when the file doesn't exist yet. */
-    public GlobalFirstChestData() {
+    public GlobalBobbyBaseChestData() {
         this.publicStorages = new HashMap<>();
         this.privateStorages = new HashMap<>();
     }
     /** Used when loading from disk (Codec path). */
-    private GlobalFirstChestData(Map<Integer, NonNullList<ItemStack>> publicStorages,
-                                 Map<UUID, Map<Integer, NonNullList<ItemStack>>> privateStorages) {
+    private GlobalBobbyBaseChestData(Map<Integer, NonNullList<ItemStack>> publicStorages,
+                                     Map<UUID, Map<Integer, NonNullList<ItemStack>>> privateStorages) {
         this.publicStorages = publicStorages;
         this.privateStorages = privateStorages;
     }
@@ -75,7 +75,7 @@ public class GlobalFirstChestData extends SavedData {
         return items;
     }
 
-    private static GlobalFirstChestData fromEntries(List<StorageEntry> entries) {
+    private static GlobalBobbyBaseChestData fromEntries(List<StorageEntry> entries) {
         Map<Integer, NonNullList<ItemStack>> publicStorages = new HashMap<>();
         Map<UUID, Map<Integer, NonNullList<ItemStack>>> privateStorages = new HashMap<>();
         for (StorageEntry entry : entries) {
@@ -87,7 +87,7 @@ public class GlobalFirstChestData extends SavedData {
             Map<Integer, NonNullList<ItemStack>> byId = privateStorages.computeIfAbsent(ownerUuid, ignored -> new HashMap<>());
             byId.put(entry.id(), toFixedSizeStorage(entry.items()));
         }
-        return new GlobalFirstChestData(publicStorages, privateStorages);
+        return new GlobalBobbyBaseChestData(publicStorages, privateStorages);
     }
 
     private List<StorageEntry> toEntryList() {
@@ -111,7 +111,7 @@ public class GlobalFirstChestData extends SavedData {
         return entries;
     }
 
-    public static GlobalFirstChestData get(ServerLevel anyLevel) {
+    public static GlobalBobbyBaseChestData get(ServerLevel anyLevel) {
         ServerLevel overworld = anyLevel.getServer().overworld();
         return overworld.getDataStorage().computeIfAbsent(TYPE);
     }
@@ -125,7 +125,7 @@ public class GlobalFirstChestData extends SavedData {
         return byId.computeIfAbsent(id, ignored -> NonNullList.withSize(SLOT_COUNT, ItemStack.EMPTY));
     }
 
-    public NonNullList<ItemStack> getItemsForChest(FirstChestBlockEntity chest) {
+    public NonNullList<ItemStack> getItemsForChest(BobbyBaseChestBlockEntity chest) {
         int id = chest.getGlobalStorageId();
         if (chest.isLocked() && chest.getOwnerUuid() != null) {
             return getItemsPrivate(chest.getOwnerUuid(), id);
@@ -133,7 +133,7 @@ public class GlobalFirstChestData extends SavedData {
         return getItemsPublic(id);
     }
 
-    public StorageKey keyForChest(FirstChestBlockEntity chest) {
+    public StorageKey keyForChest(BobbyBaseChestBlockEntity chest) {
         UUID owner = (chest.isLocked() ? chest.getOwnerUuid() : null);
         return new StorageKey(owner, chest.getGlobalStorageId());
     }
@@ -153,7 +153,7 @@ public class GlobalFirstChestData extends SavedData {
      * Register or rebind a chest position to the current storage key.
      * Call on chunk load and whenever the chest's id/lock changes.
      */
-    public void registerOrUpdateChest(FirstChestBlockEntity chest) {
+    public void registerOrUpdateChest(BobbyBaseChestBlockEntity chest) {
         if (!(chest.getLevel() instanceof ServerLevel serverLevel)) {
             return;
         }
@@ -180,7 +180,7 @@ public class GlobalFirstChestData extends SavedData {
         }
     }
 
-    public void unregisterChest(FirstChestBlockEntity chest) {
+    public void unregisterChest(BobbyBaseChestBlockEntity chest) {
         if (!(chest.getLevel() instanceof ServerLevel serverLevel)) {
             return;
         }
@@ -227,7 +227,7 @@ public class GlobalFirstChestData extends SavedData {
      */
     public void onChestAboveChanged(ServerLevel level, BlockPos chestPos) {
         var be = level.getBlockEntity(chestPos);
-        if (!(be instanceof FirstChestBlockEntity chest)) {
+        if (!(be instanceof BobbyBaseChestBlockEntity chest)) {
             return;
         }
         StorageKey key = keyForChest(chest);
@@ -253,7 +253,7 @@ public class GlobalFirstChestData extends SavedData {
         }
     }
 
-    public void onChestOpen(FirstChestBlockEntity chest) {
+    public void onChestOpen(BobbyBaseChestBlockEntity chest) {
         if (!(chest.getLevel() instanceof ServerLevel serverLevel)) {
             return;
         }
@@ -264,7 +264,7 @@ public class GlobalFirstChestData extends SavedData {
         adjustPublicOpenViewers(serverLevel, key, 1);
     }
 
-    public void onChestClose(FirstChestBlockEntity chest) {
+    public void onChestClose(BobbyBaseChestBlockEntity chest) {
         if (!(chest.getLevel() instanceof ServerLevel serverLevel)) {
             return;
         }
@@ -306,7 +306,7 @@ public class GlobalFirstChestData extends SavedData {
         }
     }
 
-    public void markChangedAndNotify(FirstChestBlockEntity chest) {
+    public void markChangedAndNotify(BobbyBaseChestBlockEntity chest) {
         this.setDirty();
         if (chest.getLevel() instanceof ServerLevel serverLevel) {
             StorageKey key = keyForChest(chest);

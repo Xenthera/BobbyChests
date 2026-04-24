@@ -4,7 +4,7 @@
     "base": "minecraft:item/chest",
     "model": {
       "type": "minecraft:chest",
-      "texture": "bobbychests:first_chest"
+      "texture": "bobbychests:bobby_base_chest"
     }
   }
 }

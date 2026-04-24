@@ -14,7 +14,7 @@ import net.minecraft.world.level.Level;
 import java.util.Objects;
 import java.util.UUID;
 
-public class FirstChestMenu extends AbstractContainerMenu {
+public class BobbyBaseChestMenu extends AbstractContainerMenu {
 
     public static final int CHEST_SLOTS = 9 * 6;
 
@@ -25,21 +25,21 @@ public class FirstChestMenu extends AbstractContainerMenu {
     private final boolean initialLocked;
     private final UUID initialOwnerUuid;
 
-    public static FirstChestMenu clientConstructor(int syncId, Inventory playerInventory) {
-        return new FirstChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), BlockPos.ZERO, 0, false, null);
+    public static BobbyBaseChestMenu clientConstructor(int syncId, Inventory playerInventory) {
+        return new BobbyBaseChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), BlockPos.ZERO, 0, false, null);
     }
     
-    public static FirstChestMenu clientConstructor(int syncId, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
+    public static BobbyBaseChestMenu clientConstructor(int syncId, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
         int id = buf.readVarInt();
         boolean locked = buf.readBoolean();
         String owner = buf.readUtf();
         UUID ownerUuid = owner.isEmpty() ? null : UUID.fromString(owner);
-        return new FirstChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), pos, id, locked, ownerUuid);
+        return new BobbyBaseChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), pos, id, locked, ownerUuid);
     }
 
-    public FirstChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid) {
-        super(ModMenus.FIRST_CHEST_MENU.get(), syncID);
+    public BobbyBaseChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid) {
+        super(ModMenus.BOBBY_BASE_CHEST_MENU.get(), syncID);
 
         this.container = Objects.requireNonNull(container);
         this.level = playerInventory.player.level();

@@ -6,7 +6,7 @@
             "entries": [
             {
                 "type": "minecraft:item",
-                "name": "bobbychests:first_chest"
+                "name": "bobbychests:bobby_base_chest"
             }
             ],
             "conditions": [

@@ -1,7 +1,7 @@
 package com.bobby.bobbychests.menu;
 
-import com.bobby.bobbychests.blockentity.FirstChestBlockEntity;
-import com.bobby.bobbychests.globalcheststorage.GlobalFirstChestContainer;
+import com.bobby.bobbychests.blockentity.BobbyBaseChestBlockEntity;
+import com.bobby.bobbychests.globalcheststorage.GlobalBobbyBaseChestContainer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -12,19 +12,19 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.neoforged.neoforge.common.extensions.IMenuProviderExtension;
 
 /**
- * Server-side menu provider for {@link FirstChestMenu}.
+ * Server-side menu provider for {@link BobbyBaseChestMenu}.
  *
  * <p>Important: this should only be created/used on the server; the client gets the
  * data it needs via {@link #writeClientSideData(AbstractContainerMenu, RegistryFriendlyByteBuf)}.</p>
  */
-public final class FirstChestMenuProvider implements MenuProvider, IMenuProviderExtension {
+public final class BobbyBaseChestMenuProvider implements MenuProvider, IMenuProviderExtension {
 
     private final Component title;
-    private final GlobalFirstChestContainer container;
+    private final GlobalBobbyBaseChestContainer container;
     private final BlockPos pos;
-    private final FirstChestBlockEntity chest;
+    private final BobbyBaseChestBlockEntity chest;
 
-    public FirstChestMenuProvider(Component title, GlobalFirstChestContainer container, BlockPos pos, FirstChestBlockEntity chest) {
+    public BobbyBaseChestMenuProvider(Component title, GlobalBobbyBaseChestContainer container, BlockPos pos, BobbyBaseChestBlockEntity chest) {
         this.title = title;
         this.container = container;
         this.pos = pos;
@@ -38,7 +38,7 @@ public final class FirstChestMenuProvider implements MenuProvider, IMenuProvider
 
     @Override
     public AbstractContainerMenu createMenu(int syncID, Inventory playerInv, Player player) {
-        return new FirstChestMenu(
+        return new BobbyBaseChestMenu(
                 syncID,
                 playerInv,
                 this.container,

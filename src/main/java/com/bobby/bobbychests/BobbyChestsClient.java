@@ -1,8 +1,8 @@
 package com.bobby.bobbychests;
 
 import com.bobby.bobbychests.blockentity.ModBlockEntities;
-import com.bobby.bobbychests.client.render.FirstChestRenderer;
-import com.bobby.bobbychests.client.screen.FirstChestScreen;
+import com.bobby.bobbychests.client.render.BobbyBaseChestRenderer;
+import com.bobby.bobbychests.client.screen.BobbyBaseChestScreen;
 import com.bobby.bobbychests.menu.ModMenus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
@@ -34,10 +34,10 @@ public class BobbyChestsClient {
         BobbyChests.LOGGER.info("HELLO FROM CLIENT SETUP");
         BobbyChests.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
 
-        event.enqueueWork(() -> BlockEntityRenderers.register(ModBlockEntities.FIRST_CHEST.get(), FirstChestRenderer::new));
+        event.enqueueWork(() -> BlockEntityRenderers.register(ModBlockEntities.BOBBY_BASE_CHEST.get(), BobbyBaseChestRenderer::new));
     }
     @SubscribeEvent
     static void registerScreens(RegisterMenuScreensEvent event){
-        event.register(ModMenus.FIRST_CHEST_MENU.get(), FirstChestScreen::new);
+        event.register(ModMenus.BOBBY_BASE_CHEST_MENU.get(), BobbyBaseChestScreen::new);
     }
 }

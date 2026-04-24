@@ -12,8 +12,8 @@ import java.util.function.Supplier;
 public final class ModMenus {
     public static final DeferredRegister<MenuType<?>> MENUS =
             DeferredRegister.create(Registries.MENU, BobbyChests.MODID);
-    public static final Supplier<MenuType<FirstChestMenu>> FIRST_CHEST_MENU =
-            MENUS.register("first_chest_menu", () -> IMenuTypeExtension.create(FirstChestMenu::clientConstructor));
+    public static final Supplier<MenuType<BobbyBaseChestMenu>> BOBBY_BASE_CHEST_MENU =
+            MENUS.register("bobby_base_chest_menu", () -> IMenuTypeExtension.create(BobbyBaseChestMenu::clientConstructor));
     public static void register(IEventBus modBus) {
         MENUS.register(modBus);
     }

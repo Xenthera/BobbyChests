@@ -1,6 +1,6 @@
 package com.bobby.bobbychests.capabilities;
 
-import com.bobby.bobbychests.blockentity.FirstChestBlockEntity;
+import com.bobby.bobbychests.blockentity.BobbyBaseChestBlockEntity;
 import com.bobby.bobbychests.blockentity.ModBlockEntities;
 import net.minecraft.core.Direction;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -14,8 +14,8 @@ public final class ModCapabilities {
     public static void register(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(
                 Capabilities.Item.BLOCK,
-                ModBlockEntities.FIRST_CHEST.get(),
-                (FirstChestBlockEntity chest, @Nullable Direction side) -> chest.getItemResourceHandler(side)
+                ModBlockEntities.BOBBY_BASE_CHEST.get(),
+                (BobbyBaseChestBlockEntity chest, @Nullable Direction side) -> chest.getItemResourceHandler(side)
         );
     }
 }

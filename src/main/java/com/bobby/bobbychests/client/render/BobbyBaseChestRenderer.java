@@ -1,7 +1,7 @@
 package com.bobby.bobbychests.client.render;
 
 import com.bobby.bobbychests.BobbyChests;
-import com.bobby.bobbychests.blockentity.FirstChestBlockEntity;
+import com.bobby.bobbychests.blockentity.BobbyBaseChestBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.object.chest.ChestModel;
 import net.minecraft.client.renderer.MultiblockChestResources;
@@ -15,21 +15,21 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.sprite.SpriteId;
 import net.minecraft.resources.Identifier;
 
-public class FirstChestRenderer extends ChestRenderer<FirstChestBlockEntity> {
+public class BobbyBaseChestRenderer extends ChestRenderer<BobbyBaseChestBlockEntity> {
 
     private static final SpriteId SINGLE = new SpriteId(
             Sheets.CHEST_SHEET,
-            Identifier.fromNamespaceAndPath(BobbyChests.MODID, "entity/chest/first_chest"));
+            Identifier.fromNamespaceAndPath(BobbyChests.MODID, "entity/chest/bobby_base_chest"));
     private static final SpriteId LEFT = new SpriteId(
             Sheets.CHEST_SHEET,
-            Identifier.fromNamespaceAndPath(BobbyChests.MODID, "entity/chest/first_chest_left"));
+            Identifier.fromNamespaceAndPath(BobbyChests.MODID, "entity/chest/bobby_base_chest_left"));
     private static final SpriteId RIGHT = new SpriteId(
             Sheets.CHEST_SHEET,
-            Identifier.fromNamespaceAndPath(BobbyChests.MODID, "entity/chest/first_chest_right"));
+            Identifier.fromNamespaceAndPath(BobbyChests.MODID, "entity/chest/bobby_base_chest_right"));
 
     private static final MultiblockChestResources<SpriteId> SPRITES = new MultiblockChestResources<>(SINGLE, LEFT, RIGHT);
 
-    public FirstChestRenderer(BlockEntityRendererProvider.Context context) {
+    public BobbyBaseChestRenderer(BlockEntityRendererProvider.Context context) {
         super(context);
     }
 
