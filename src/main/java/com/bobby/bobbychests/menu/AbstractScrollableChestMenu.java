@@ -13,9 +13,9 @@ import net.minecraft.world.item.ItemStack;
 import java.util.UUID;
 
 /**
- * Same scroll model as the original {@code EmeraldChestMenu} (bbc2a4e): a plain {@code scrollRows} field,
- * {@link #setScrollRows(int)} updates the client mirror when scroll changes, and the screen applies scroll on the
- * client before sending {@code SetScrollableChestScrollPayload} so slot math matches vanilla sync.
+ * Same scroll model as the original {@code EmeraldChestMenu} (bbc2a4e): a plain {@code scrollRows} field, with the
+ * screen applying scroll on the client before sending {@code SetScrollableChestScrollPayload} so slot math matches
+ * vanilla sync.
  */
 public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
     /**
@@ -122,14 +122,14 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
 
     /**
      * Wheel / scrollbar on the client, or scroll application from {@code SetScrollableChestScrollPayload} on the server.
-     * Clears the client mirror when the first visible row changes so stale indices are not shown.
+     * The client mirror is preserved during scroll so already-synced rows do not flash empty while the full server
+     * state arrives.
      */
     public void setScrollRows(int rows) {
         int next = Mth.clamp(rows, 0, this.maxScrollRows());
         if (next == this.scrollRows) {
             return;
         }
-        this.clearClientMirrorSlots();
         this.scrollRows = next;
         if (!this.level.isClientSide()) {
             // Visible menu slot IDs now point at different logical storage slots. A normal incremental broadcast
