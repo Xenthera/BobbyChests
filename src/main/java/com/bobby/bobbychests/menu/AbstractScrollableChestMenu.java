@@ -8,13 +8,14 @@ import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.UUID;
 
 /**
- * Chest menu with a vertical scroll offset mapping visible slots into a larger logical getContainer().
+ * Same scroll model as the original {@code EmeraldChestMenu} (bbc2a4e): a plain {@code scrollRows} field,
+ * {@link #setScrollRows(int)} updates the client mirror when scroll changes, and the screen applies scroll on the
+ * client before sending {@code SetScrollableChestScrollPayload} so slot math matches vanilla sync.
  */
 public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
     /**
@@ -51,7 +52,23 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
 
     protected abstract int chestRowsTotal();
 
+    /**
+     * Visible chest rows in the texture (e.g. 6).
+     */
     protected abstract int chestRowsVisible();
+
+    /** Used by scrollable chest screens. */
+    public final int getTotalChestRows() {
+        return this.chestRowsTotal();
+    }
+
+    public final int getVisibleChestRows() {
+        return this.chestRowsVisible();
+    }
+
+    public final int getSlotsPerRow() {
+        return this.slotsPerRow();
+    }
 
     protected final int logicalStorageSlotCount() {
         return this.slotsPerRow() * this.chestRowsTotal();
@@ -66,10 +83,21 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
     }
 
     /**
-     * Client menus use a SimpleContainer mirror of all logical slots. Vanilla slot sync only writes indices
-     * that appear in outgoing updates; indices that were filled while scrolled under another channel keep stale stacks
-     * until cleared.
+     * Chest grid origin and step in GUI pixels — must match {@link ScrollWindowSlot} x/y from the tier menu.
+     * {@link com.bobby.bobbychests.client.screen.AbstractScrollableChestScreen} uses these for hit-testing.
      */
+    public int chestSlotGridLeft() {
+        return 8;
+    }
+
+    public int chestSlotGridTop() {
+        return 18;
+    }
+
+    public int chestSlotStep() {
+        return 18;
+    }
+
     private void clearClientMirrorSlots() {
         if (!this.level.isClientSide() || !(this.container instanceof SimpleContainer mirror)) {
             return;
@@ -81,19 +109,21 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
     }
 
     /**
-     * Call when the chest's channel, lock, or owner changes so window slots read a different backing list. Always
-     * clears scroll to row 0. On the server, always runs broadcastChanges() even if scroll was already 0 —
-     * otherwise lastSlots keeps stacks from the old channel until the menu is reopened.
+     * When storage identity changes, reset scroll to 0 and clear the client mirror. Server resyncs fully so
+     * {@code lastSlots} does not keep stacks from the old channel.
      */
     public void onGlobalStorageContextChanged() {
         this.scrollRows = 0;
         this.clearClientMirrorSlots();
         if (!this.level.isClientSide()) {
-            this.broadcastChanges();
+            this.broadcastFullState();
         }
     }
 
-    /** Wheel / scrollbar only. Channel or lock changes must use onGlobalStorageContextChanged(). */
+    /**
+     * Wheel / scrollbar on the client, or scroll application from {@code SetScrollableChestScrollPayload} on the server.
+     * Clears the client mirror when the first visible row changes so stale indices are not shown.
+     */
     public void setScrollRows(int rows) {
         int next = Mth.clamp(rows, 0, this.maxScrollRows());
         if (next == this.scrollRows) {
@@ -102,54 +132,16 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
         this.clearClientMirrorSlots();
         this.scrollRows = next;
         if (!this.level.isClientSide()) {
-            this.broadcastChanges();
+            // Visible menu slot IDs now point at different logical storage slots. A normal incremental broadcast
+            // compares by visible slot ID and can skip equal-looking stacks, leaving the client mirror incomplete.
+            this.broadcastFullState();
         }
     }
 
-    /**
-     * @return true if the scroll position changed
-     */
+    /** @return {@code true} if the scroll position changed */
     public boolean applyScrollDelta(int deltaRows) {
         int prev = this.scrollRows;
         this.setScrollRows(this.scrollRows + deltaRows);
         return this.scrollRows != prev;
-    }
-
-    public static final class ScrollWindowSlot extends Slot {
-        private final AbstractScrollableChestMenu menu;
-        private final int visibleRow;
-        private final int col;
-
-        ScrollWindowSlot(AbstractScrollableChestMenu menu, Container container, int visibleRow, int col, int x, int y) {
-            super(container, 0, x, y);
-            this.menu = menu;
-            this.visibleRow = visibleRow;
-            this.col = col;
-        }
-
-        private int storageIndex() {
-            return (this.menu.getScrollRows() + this.visibleRow) * this.menu.slotsPerRow() + this.col;
-        }
-
-        @Override
-        public ItemStack getItem() {
-            return this.container.getItem(this.storageIndex());
-        }
-
-        @Override
-        public void set(ItemStack stack) {
-            this.container.setItem(this.storageIndex(), stack);
-            this.setChanged();
-        }
-
-        @Override
-        public ItemStack remove(int amount) {
-            return this.container.removeItem(this.storageIndex(), amount);
-        }
-
-        @Override
-        public int getContainerSlot() {
-            return this.storageIndex();
-        }
     }
 }

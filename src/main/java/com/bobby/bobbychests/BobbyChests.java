@@ -64,6 +64,7 @@ public class BobbyChests {
                 output.accept(ModBlocks.GOLD_CHEST.get());
                 output.accept(ModBlocks.DIAMOND_CHEST.get());
                 output.accept(ModBlocks.EMERALD_CHEST.get());
+                output.accept(ModBlocks.NETHERITE_CHEST.get());
             }).build());
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.

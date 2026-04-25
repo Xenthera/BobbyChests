@@ -2,6 +2,14 @@ package com.bobby.bobbychests.blockentity;
 
 import com.bobby.bobbychests.BobbyChests;
 import com.bobby.bobbychests.block.ModBlocks;
+import com.bobby.bobbychests.blockentity.copper.CopperChestBlockEntity;
+import com.bobby.bobbychests.blockentity.diamond.DiamondChestBlockEntity;
+import com.bobby.bobbychests.blockentity.dirt.DirtChestBlockEntity;
+import com.bobby.bobbychests.blockentity.emerald.EmeraldChestBlockEntity;
+import com.bobby.bobbychests.blockentity.gold.GoldChestBlockEntity;
+import com.bobby.bobbychests.blockentity.iron.IronChestBlockEntity;
+import com.bobby.bobbychests.blockentity.netherite.NetheriteChestBlockEntity;
+import com.bobby.bobbychests.blockentity.wooden.WoodenChestBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -64,6 +72,15 @@ public class ModBlockEntities {
                     EmeraldChestBlockEntity::new,
                     false,
                     ModBlocks.EMERALD_CHEST.get()
+            )
+    );
+
+    public static final Supplier<BlockEntityType<NetheriteChestBlockEntity>> NETHERITE_CHEST = BLOCK_ENTITIES.register(
+            "netherite_chest",
+            () -> new BlockEntityType<>(
+                    NetheriteChestBlockEntity::new,
+                    false,
+                    ModBlocks.NETHERITE_CHEST.get()
             )
     );
 

@@ -1,6 +1,14 @@
 package com.bobby.bobbychests.block;
 
 import com.bobby.bobbychests.BobbyChests;
+import com.bobby.bobbychests.block.copper.CopperChestBlock;
+import com.bobby.bobbychests.block.diamond.DiamondChestBlock;
+import com.bobby.bobbychests.block.dirt.DirtChestBlock;
+import com.bobby.bobbychests.block.emerald.EmeraldChestBlock;
+import com.bobby.bobbychests.block.gold.GoldChestBlock;
+import com.bobby.bobbychests.block.iron.IronChestBlock;
+import com.bobby.bobbychests.block.netherite.NetheriteChestBlock;
+import com.bobby.bobbychests.block.wooden.WoodenChestBlock;
 import com.bobby.bobbychests.item.ModItems;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.Block;
@@ -52,6 +60,8 @@ public class ModBlocks {
                     .strength(3.5f)
                     .sound(SoundType.METAL))
     );
+
+    public static final DeferredBlock<Block> NETHERITE_CHEST = registerBlock("netherite_chest", NetheriteChestBlock::new);
 
     public static final DeferredBlock<Block> DIRT_CHEST = registerBlock("dirt_chest",
             props -> new DirtChestBlock(props

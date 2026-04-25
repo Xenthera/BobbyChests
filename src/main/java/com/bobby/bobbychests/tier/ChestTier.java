@@ -9,7 +9,8 @@ public enum ChestTier {
     IRON("iron", 999),
     GOLD("gold", 9_999),
     DIAMOND("diamond", 99_999),
-    EMERALD("emerald", 999_999);
+    EMERALD("emerald", 999_999),
+    NETHERITE("netherite", 9_999_999);
 
     private final String id;
     private final int maxChannelId;

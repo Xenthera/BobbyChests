@@ -44,6 +44,11 @@ public final class ModCapabilities {
         );
         event.registerBlockEntity(
                 Capabilities.Item.BLOCK,
+                ModBlockEntities.NETHERITE_CHEST.get(),
+                (AbstractTieredChestBlockEntity chest, @Nullable Direction side) -> chest.getItemResourceHandler(side)
+        );
+        event.registerBlockEntity(
+                Capabilities.Item.BLOCK,
                 ModBlockEntities.DIRT_CHEST.get(),
                 (AbstractTieredChestBlockEntity chest, @Nullable Direction side) -> chest.getItemResourceHandler(side)
         );

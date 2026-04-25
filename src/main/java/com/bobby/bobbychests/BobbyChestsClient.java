@@ -1,20 +1,22 @@
 package com.bobby.bobbychests;
 
 import com.bobby.bobbychests.blockentity.ModBlockEntities;
-import com.bobby.bobbychests.client.render.DirtChestRenderer;
-import com.bobby.bobbychests.client.render.CopperChestRenderer;
-import com.bobby.bobbychests.client.render.IronChestRenderer;
-import com.bobby.bobbychests.client.render.GoldChestRenderer;
-import com.bobby.bobbychests.client.render.DiamondChestRenderer;
-import com.bobby.bobbychests.client.render.EmeraldChestRenderer;
-import com.bobby.bobbychests.client.render.WoodenChestRenderer;
-import com.bobby.bobbychests.client.screen.DirtChestScreen;
-import com.bobby.bobbychests.client.screen.CopperChestScreen;
-import com.bobby.bobbychests.client.screen.IronChestScreen;
-import com.bobby.bobbychests.client.screen.GoldChestScreen;
-import com.bobby.bobbychests.client.screen.DiamondChestScreen;
-import com.bobby.bobbychests.client.screen.EmeraldChestScreen;
-import com.bobby.bobbychests.client.screen.WoodenChestScreen;
+import com.bobby.bobbychests.client.render.copper.CopperChestRenderer;
+import com.bobby.bobbychests.client.render.diamond.DiamondChestRenderer;
+import com.bobby.bobbychests.client.render.dirt.DirtChestRenderer;
+import com.bobby.bobbychests.client.render.emerald.EmeraldChestRenderer;
+import com.bobby.bobbychests.client.render.gold.GoldChestRenderer;
+import com.bobby.bobbychests.client.render.iron.IronChestRenderer;
+import com.bobby.bobbychests.client.render.netherite.NetheriteChestRenderer;
+import com.bobby.bobbychests.client.render.wooden.WoodenChestRenderer;
+import com.bobby.bobbychests.client.screen.copper.CopperChestScreen;
+import com.bobby.bobbychests.client.screen.diamond.DiamondChestScreen;
+import com.bobby.bobbychests.client.screen.dirt.DirtChestScreen;
+import com.bobby.bobbychests.client.screen.emerald.EmeraldChestScreen;
+import com.bobby.bobbychests.client.screen.gold.GoldChestScreen;
+import com.bobby.bobbychests.client.screen.iron.IronChestScreen;
+import com.bobby.bobbychests.client.screen.netherite.NetheriteChestScreen;
+import com.bobby.bobbychests.client.screen.wooden.WoodenChestScreen;
 import com.bobby.bobbychests.menu.ModMenus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
@@ -53,6 +55,7 @@ public class BobbyChestsClient {
             BlockEntityRenderers.register(ModBlockEntities.GOLD_CHEST.get(), GoldChestRenderer::new);
             BlockEntityRenderers.register(ModBlockEntities.DIAMOND_CHEST.get(), DiamondChestRenderer::new);
             BlockEntityRenderers.register(ModBlockEntities.EMERALD_CHEST.get(), EmeraldChestRenderer::new);
+            BlockEntityRenderers.register(ModBlockEntities.NETHERITE_CHEST.get(), NetheriteChestRenderer::new);
             BlockEntityRenderers.register(ModBlockEntities.DIRT_CHEST.get(), DirtChestRenderer::new);
         });
     }
@@ -64,6 +67,7 @@ public class BobbyChestsClient {
         event.register(ModMenus.GOLD_CHEST_MENU.get(), GoldChestScreen::new);
         event.register(ModMenus.DIAMOND_CHEST_MENU.get(), DiamondChestScreen::new);
         event.register(ModMenus.EMERALD_CHEST_MENU.get(), EmeraldChestScreen::new);
+        event.register(ModMenus.NETHERITE_CHEST_MENU.get(), NetheriteChestScreen::new);
         event.register(ModMenus.DIRT_CHEST_MENU.get(), DirtChestScreen::new);
     }
 }
