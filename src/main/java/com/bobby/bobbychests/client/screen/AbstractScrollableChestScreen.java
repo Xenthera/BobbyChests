@@ -17,9 +17,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Same scroll state model as the original {@code EmeraldChestScreen} (bbc2a4e): chest grid / scrollbar call
- * {@link AbstractScrollableChestMenu#setScrollRows(int)} / {@link AbstractScrollableChestMenu#applyScrollDelta(int)}
- * on the client and send {@link SetScrollableChestScrollPayload}.
+ * Scrollable chest screen that applies row changes locally before sending them to the server.
  */
 public abstract class AbstractScrollableChestScreen<M extends AbstractScrollableChestMenu> extends AbstractChestScreen<M> {
     private static final int SYNCED_CHANNEL_UNSET = Integer.MIN_VALUE;
@@ -98,7 +96,7 @@ public abstract class AbstractScrollableChestScreen<M extends AbstractScrollable
         }
     }
 
-    protected final void sendScrollRowsToServer() {
+    private void sendScrollRowsToServer() {
         if (this.minecraft == null) {
             return;
         }
@@ -107,7 +105,7 @@ public abstract class AbstractScrollableChestScreen<M extends AbstractScrollable
         );
     }
 
-    protected final void sendScrollRowsToServerAfterMenuChange(int previousScrollRows) {
+    private void sendScrollRowsToServerAfterMenuChange(int previousScrollRows) {
         if (this.menu.getScrollRows() != previousScrollRows) {
             this.sendScrollRowsToServer();
         }

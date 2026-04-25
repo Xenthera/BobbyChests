@@ -2,7 +2,6 @@ package com.bobby.bobbychests.menu.netherite;
 
 import com.bobby.bobbychests.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.menu.ModMenus;
-import com.bobby.bobbychests.menu.ScrollWindowSlot;
 import com.bobby.bobbychests.tier.ChestTier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -16,10 +15,8 @@ public final class NetheriteChestMenu extends AbstractScrollableChestMenu {
     private static final int SLOTS_PER_ROW = 18;
     /** Logical grid height in rows (18×18 = 324 storage slots). */
     public static final int TOTAL_CHEST_ROWS = 18;
-    private static final int CHEST_ROWS_TOTAL = TOTAL_CHEST_ROWS;
     private static final int CHEST_ROWS_VISIBLE = 6;
-    private static final int STORAGE_SLOTS = SLOTS_PER_ROW * CHEST_ROWS_TOTAL;
-    private static final int VISIBLE_CHEST_SLOTS = SLOTS_PER_ROW * CHEST_ROWS_VISIBLE;
+    private static final int STORAGE_SLOTS = SLOTS_PER_ROW * TOTAL_CHEST_ROWS;
 
     public static NetheriteChestMenu clientConstructor(int syncId, Inventory playerInventory) {
         return new NetheriteChestMenu(
@@ -45,34 +42,21 @@ public final class NetheriteChestMenu extends AbstractScrollableChestMenu {
     }
 
     public NetheriteChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, int maxChannelId) {
-        super(ModMenus.NETHERITE_CHEST_MENU.get(), syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, maxChannelId);
-
-        this.chestSlotCount = VISIBLE_CHEST_SLOTS;
-        for (int row = 0; row < CHEST_ROWS_VISIBLE; row++) {
-            for (int col = 0; col < SLOTS_PER_ROW; col++) {
-                int x = 8 + col * 18;
-                int y = 18 + row * 18;
-                this.addSlot(new ScrollWindowSlot(this, this.container, row, col, x, y));
-            }
-        }
-
-        int playerLeftX = 8 + ((SLOTS_PER_ROW - 9) * 18) / 2;
-        this.addPlayerInventorySlots(playerInventory, playerLeftX, 140);
-    }
-
-    @Override
-    protected int slotsPerRow() {
-        return SLOTS_PER_ROW;
-    }
-
-    @Override
-    protected int chestRowsTotal() {
-        return CHEST_ROWS_TOTAL;
-    }
-
-    @Override
-    protected int chestRowsVisible() {
-        return CHEST_ROWS_VISIBLE;
+        super(
+                ModMenus.NETHERITE_CHEST_MENU.get(),
+                syncID,
+                playerInventory,
+                container,
+                chestPos,
+                initialChestId,
+                initialLocked,
+                initialOwnerUuid,
+                maxChannelId,
+                SLOTS_PER_ROW,
+                TOTAL_CHEST_ROWS,
+                CHEST_ROWS_VISIBLE
+        );
+        this.addScrollableChestSlots(playerInventory);
     }
 
     @Override

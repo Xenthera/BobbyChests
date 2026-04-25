@@ -13,9 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.UUID;
 
 /**
- * Same scroll model as the original {@code EmeraldChestMenu} (bbc2a4e): a plain {@code scrollRows} field, with the
- * screen applying scroll on the client before sending {@code SetScrollableChestScrollPayload} so slot math matches
- * vanilla sync.
+ * Scrollable chest menu with a client-side row offset and server full-state sync after the visible window changes.
  */
 public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
     /**
@@ -34,6 +32,9 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
     }
 
     private int scrollRows;
+    private final int slotsPerRow;
+    private final int chestRowsTotal;
+    private final int chestRowsVisible;
 
     protected AbstractScrollableChestMenu(
             MenuType<?> type,
@@ -44,18 +45,27 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
             int initialChestId,
             boolean initialLocked,
             UUID initialOwnerUuid,
-            int maxChannelId) {
+            int maxChannelId,
+            int slotsPerRow,
+            int chestRowsTotal,
+            int chestRowsVisible) {
         super(type, syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, maxChannelId);
+        this.slotsPerRow = slotsPerRow;
+        this.chestRowsTotal = chestRowsTotal;
+        this.chestRowsVisible = chestRowsVisible;
     }
 
-    protected abstract int slotsPerRow();
+    protected final int slotsPerRow() {
+        return this.slotsPerRow;
+    }
 
-    protected abstract int chestRowsTotal();
+    protected final int chestRowsTotal() {
+        return this.chestRowsTotal;
+    }
 
-    /**
-     * Visible chest rows in the texture (e.g. 6).
-     */
-    protected abstract int chestRowsVisible();
+    protected final int chestRowsVisible() {
+        return this.chestRowsVisible;
+    }
 
     /** Used by scrollable chest screens. */
     public final int getTotalChestRows() {
@@ -96,6 +106,26 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
 
     public int chestSlotStep() {
         return 18;
+    }
+
+    protected int playerInventoryTopY() {
+        return this.chestSlotGridTop() + this.chestRowsVisible() * this.chestSlotStep() + 14;
+    }
+
+    protected final void addScrollableChestSlots(Inventory playerInventory) {
+        int step = this.chestSlotStep();
+        this.chestSlotCount = this.slotsPerRow() * this.chestRowsVisible();
+
+        for (int row = 0; row < this.chestRowsVisible(); row++) {
+            for (int col = 0; col < this.slotsPerRow(); col++) {
+                int x = this.chestSlotGridLeft() + col * step;
+                int y = this.chestSlotGridTop() + row * step;
+                this.addSlot(new ScrollWindowSlot(this, this.container, row, col, x, y));
+            }
+        }
+
+        int playerLeftX = this.chestSlotGridLeft() + ((this.slotsPerRow() - 9) * step) / 2;
+        this.addPlayerInventorySlots(playerInventory, playerLeftX, this.playerInventoryTopY());
     }
 
     private void clearClientMirrorSlots() {

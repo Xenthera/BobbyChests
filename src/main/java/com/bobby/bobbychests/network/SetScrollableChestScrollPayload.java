@@ -7,7 +7,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
-/** Client sends the first visible row after updating the menu locally (same contract as legacy {@code SetEmeraldChestScrollPayload}). */
+/** Client sends the first visible row after updating the menu locally. */
 public record SetScrollableChestScrollPayload(BlockPos pos, int scrollRows) implements CustomPacketPayload {
     public static final Type<SetScrollableChestScrollPayload> TYPE =
             new Type<>(Identifier.fromNamespaceAndPath("bobbychests", "set_scrollable_chest_scroll"));
