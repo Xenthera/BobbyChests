@@ -2,7 +2,6 @@ package com.bobby.bobbychests.client.screen;
 
 import com.bobby.bobbychests.BobbyChests;
 import com.bobby.bobbychests.menu.EmeraldChestMenu;
-import com.bobby.bobbychests.network.SetEmeraldChestScrollPayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -10,9 +9,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
-import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
-public final class EmeraldChestScreen extends AbstractChestScreen<EmeraldChestMenu> {
+public final class EmeraldChestScreen extends AbstractScrollableChestScreen<EmeraldChestMenu> {
     private static final Identifier BG = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "textures/gui/bobby_base_chest_108.png");
     private static final int ID_BOX_W = 62;
     private static final int CHEST_GRID_LEFT = 8;
@@ -157,11 +155,7 @@ public final class EmeraldChestScreen extends AbstractChestScreen<EmeraldChestMe
         }
         int before = this.menu.getScrollRows();
         this.menu.setScrollRows(row);
-        if (this.menu.getScrollRows() != before) {
-            ClientPacketDistributor.sendToServer(
-                    new SetEmeraldChestScrollPayload(this.menu.getChestPos(), this.menu.getScrollRows())
-            );
-        }
+        this.sendScrollRowsToServerAfterMenuChange(before);
     }
 
     @Override
@@ -200,9 +194,7 @@ public final class EmeraldChestScreen extends AbstractChestScreen<EmeraldChestMe
                 && (this.isMouseOverEmeraldChestGrid(mouseX, mouseY) || this.isMouseOverEmeraldScrollbarTrack(mouseX, mouseY))) {
             int deltaRows = (int) -Math.signum(scrollY);
             if (this.menu.applyScrollDelta(deltaRows)) {
-                ClientPacketDistributor.sendToServer(
-                        new SetEmeraldChestScrollPayload(this.menu.getChestPos(), this.menu.getScrollRows())
-                );
+                this.sendScrollRowsToServer();
                 return true;
             }
         }

@@ -1,8 +1,6 @@
 package com.bobby.bobbychests.client.screen;
 
-import com.bobby.bobbychests.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.menu.AbstractChestMenu;
-import com.bobby.bobbychests.menu.EmeraldChestMenu;
 import com.bobby.bobbychests.network.SetGlobalStorageIdPayload;
 import com.bobby.bobbychests.network.SetLockedPayload;
 import net.minecraft.client.gui.components.Button;
@@ -16,13 +14,10 @@ import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2i;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 
 public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends AbstractContainerScreen<M> {
     private EditBox editBox;
@@ -36,12 +31,6 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     private boolean applyingClampedText = false;
     private long clampPopupUntilMs = 0L;
     private static final long CLAMP_POPUP_MS = 1200L;
-
-    /** Client-only: last synced channel/lock/owner from the chest BE for emerald scroll reset. */
-    private static final int EMERALD_CHANNEL_UNSET = Integer.MIN_VALUE;
-    private int emeraldSyncedChannelId = EMERALD_CHANNEL_UNSET;
-    private boolean emeraldSyncedLocked;
-    private @Nullable UUID emeraldSyncedOwnerUuid;
 
     protected AbstractChestScreen(M menu, Inventory inv, Component title) {
         super(menu, inv, title, menu.getImageWidthPx(), menu.getImageHeightPx());
@@ -90,7 +79,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         this.lockButton = Button.builder(lockLabel(this.locked), btn -> {
             this.locked = !this.locked;
             btn.setMessage(lockLabel(this.locked));
-            this.resetEmeraldChestScrollForStorageKeyChange();
+            this.resetScrollMenuOnStorageKeyChange();
             ClientPacketDistributor.sendToServer(new SetLockedPayload(this.menu.getChestPos(), this.locked));
         }).bounds(lockX, lockY, lockSize, lockSize).build();
         this.addRenderableWidget(this.lockButton);
@@ -248,10 +237,15 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         this.sendAfterMs = Util.getMillis() + ID_DEBOUNCE_MS;
     }
 
+    /**
+     * Scrollable chest screens override this to reset row scroll when the player edits channel id or toggles lock
+     * before packets apply.
+     */
+    protected void resetScrollMenuOnStorageKeyChange() {}
+
     @Override
     protected void containerTick() {
         super.containerTick();
-        this.tickEmeraldScrollFromSyncedChest();
         if (this.pendingId == Integer.MIN_VALUE) {
             return;
         }
@@ -267,52 +261,8 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
                 this.editBox.setValue(clampedText);
             }
         }
-        this.resetEmeraldChestScrollForStorageKeyChange();
+        this.resetScrollMenuOnStorageKeyChange();
         ClientPacketDistributor.sendToServer(new SetGlobalStorageIdPayload(this.menu.getChestPos(), id));
-    }
-
-    /**
-     * Emerald maps visible slots into storage using {@link EmeraldChestMenu#getScrollRows()}; changing channel or
-     * lock switches which backing list is used, so a non-zero scroll would show the wrong slice until reset.
-     */
-    private void resetEmeraldChestScrollForStorageKeyChange() {
-        if (this.menu instanceof EmeraldChestMenu em) {
-            em.onGlobalStorageContextChanged();
-        }
-    }
-
-    /**
-     * When the block entity syncs a new channel / lock / owner (another player, commands, etc.), reset emerald
-     * scroll so window slots map into the correct backing list.
-     */
-    private void tickEmeraldScrollFromSyncedChest() {
-        if (this.minecraft == null || this.minecraft.level == null) {
-            return;
-        }
-        if (!(this.menu instanceof EmeraldChestMenu em)) {
-            this.emeraldSyncedChannelId = EMERALD_CHANNEL_UNSET;
-            return;
-        }
-        if (!(this.minecraft.level.getBlockEntity(em.getChestPos()) instanceof AbstractTieredChestBlockEntity be)) {
-            return;
-        }
-        int channel = be.getGlobalStorageId();
-        boolean locked = be.isLocked();
-        UUID owner = be.getOwnerUuid();
-        if (this.emeraldSyncedChannelId == EMERALD_CHANNEL_UNSET) {
-            this.emeraldSyncedChannelId = channel;
-            this.emeraldSyncedLocked = locked;
-            this.emeraldSyncedOwnerUuid = owner;
-            return;
-        }
-        if (channel != this.emeraldSyncedChannelId
-                || locked != this.emeraldSyncedLocked
-                || !Objects.equals(owner, this.emeraldSyncedOwnerUuid)) {
-            em.onGlobalStorageContextChanged();
-            this.emeraldSyncedChannelId = channel;
-            this.emeraldSyncedLocked = locked;
-            this.emeraldSyncedOwnerUuid = owner;
-        }
     }
 
     private int clampChannel(int id) {

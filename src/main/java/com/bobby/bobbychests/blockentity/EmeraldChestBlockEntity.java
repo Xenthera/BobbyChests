@@ -10,6 +10,11 @@ public final class EmeraldChestBlockEntity extends AbstractTieredChestBlockEntit
     }
 
     @Override
+    protected boolean shouldResetScrollableMenuOnStorageKeyChange() {
+        return true;
+    }
+
+    @Override
     public int getSlotCount() {
         return 18 * 12; // 216
     }

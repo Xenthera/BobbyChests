@@ -3,7 +3,7 @@ package com.bobby.bobbychests.blockentity;
 import com.bobby.bobbychests.globalcheststorage.GlobalTieredChestContainer;
 import com.bobby.bobbychests.globalcheststorage.GlobalTieredChestData;
 import com.bobby.bobbychests.menu.AbstractChestMenu;
-import com.bobby.bobbychests.menu.EmeraldChestMenu;
+import com.bobby.bobbychests.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.tier.ChestTier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -130,6 +130,14 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
     public abstract int getSlotCount();
 
+    /**
+     * When channel / lock / owner changes, whether open {@link AbstractScrollableChestMenu}s for this chest should
+     * reset row scroll (tiers with a scrollable menu override to {@code true}).
+     */
+    protected boolean shouldResetScrollableMenuOnStorageKeyChange() {
+        return false;
+    }
+
     @Override
     public int getGlobalStorageId() {
         return this.globalStorageId;
@@ -152,8 +160,8 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
             GlobalTieredChestData.StorageKey newKey = data.keyForChest(this);
             data.onChestKeyChangedWhileOpen(serverLevel, oldKey, newKey, openers);
-            if (this.getTier() == ChestTier.EMERALD) {
-                EmeraldChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
+            if (this.shouldResetScrollableMenuOnStorageKeyChange()) {
+                AbstractScrollableChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
             }
             return;
         }
@@ -212,8 +220,8 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
             GlobalTieredChestData.StorageKey newKey = data.keyForChest(this);
             data.onChestKeyChangedWhileOpen(serverLevel, oldKey, newKey, openers);
-            if (this.getTier() == ChestTier.EMERALD) {
-                EmeraldChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
+            if (this.shouldResetScrollableMenuOnStorageKeyChange()) {
+                AbstractScrollableChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
             }
             return;
         }
