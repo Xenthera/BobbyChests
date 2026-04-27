@@ -26,8 +26,6 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -42,7 +40,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     private int globalStorageId;
     private boolean locked;
     private UUID ownerUuid;
-    private final ResourceHandler<ItemResource> itemResourceHandler = new TieredChestItemResourceHandler(this);
+    private final ResourceHandler<ItemResource> itemResourceHandler = new GlobalChestItemResourceHandler(this);
 
     protected AbstractTieredChestBlockEntity(BlockEntityType<? extends AbstractTieredChestBlockEntity> type, BlockPos worldPosition, BlockState blockState, ChestTier tier) {
         super(type, worldPosition, blockState);
@@ -393,75 +391,5 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         super.preRemoveSideEffects(pos, state);
     }
 
-    private static final class TieredChestItemResourceHandler implements ResourceHandler<ItemResource> {
-        private final AbstractTieredChestBlockEntity chest;
-
-        private TieredChestItemResourceHandler(AbstractTieredChestBlockEntity chest) {
-            this.chest = chest;
-        }
-
-        private @Nullable ItemStacksResourceHandler delegate() {
-            if (!(this.chest.getLevel() instanceof ServerLevel serverLevel)) {
-                return null;
-            }
-            return new ItemStacksResourceHandler(GlobalTieredChestData.get(serverLevel).getItemsForChest(this.chest));
-        }
-
-        @Override
-        public int size() {
-            ItemStacksResourceHandler d = this.delegate();
-            return d == null ? 0 : d.size();
-        }
-
-        @Override
-        public ItemResource getResource(int slot) {
-            ItemStacksResourceHandler d = this.delegate();
-            return d == null ? ItemResource.EMPTY : d.getResource(slot);
-        }
-
-        @Override
-        public long getAmountAsLong(int slot) {
-            ItemStacksResourceHandler d = this.delegate();
-            return d == null ? 0L : d.getAmountAsLong(slot);
-        }
-
-        @Override
-        public long getCapacityAsLong(int slot, ItemResource resource) {
-            ItemStacksResourceHandler d = this.delegate();
-            return d == null ? 0L : d.getCapacityAsLong(slot, resource);
-        }
-
-        @Override
-        public boolean isValid(int slot, ItemResource resource) {
-            ItemStacksResourceHandler d = this.delegate();
-            return d != null && d.isValid(slot, resource);
-        }
-
-        @Override
-        public int insert(int slot, ItemResource resource, int amount, TransactionContext tx) {
-            ItemStacksResourceHandler d = this.delegate();
-            if (d == null) {
-                return 0;
-            }
-            int inserted = d.insert(slot, resource, amount, tx);
-            if (inserted > 0) {
-                this.chest.setChanged();
-            }
-            return inserted;
-        }
-
-        @Override
-        public int extract(int slot, ItemResource resource, int amount, TransactionContext tx) {
-            ItemStacksResourceHandler d = this.delegate();
-            if (d == null) {
-                return 0;
-            }
-            int extracted = d.extract(slot, resource, amount, tx);
-            if (extracted > 0) {
-                this.chest.setChanged();
-            }
-            return extracted;
-        }
-    }
 }
 

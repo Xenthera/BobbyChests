@@ -26,8 +26,29 @@ sourceSets.main.resources {
     exclude("src/generated/**/.cache") // datagen cache files
 }
 
+// All jar files from these folders are added automatically as local dev dependencies.
+def extraModsDir = "extra-mods"
+def extraAPIDir = "extra-api"
+
 repositories {
-    // Add here additional repositories if required by some of the dependencies below.
+    mavenLocal()
+
+    flatDir {
+        name "extra-mods"
+        dir file(extraModsDir)
+    }
+
+    flatDir {
+        name "extra-api"
+        dir file(extraAPIDir)
+    }
+
+    maven {
+        url 'https://maven.blamejared.com'
+        content {
+            includeGroup "mezz.jei"
+        }
+    }
 }
 
 base {
@@ -36,6 +57,10 @@ base {
 
 // Mojang ships Java 25 to end users in 26.1.2, so mods should target Java 25.
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+def runJavaVendor = providers.provider {
+    javaToolchains.launcherFor(java.toolchain).get().metadata.vendor
+}
 
 neoForge {
     // Specify the version of NeoForge to use.
@@ -51,6 +76,12 @@ neoForge {
             client()
             programArguments.addAll '--username', (findProperty('dev_player_name') ?: 'BobbyChestsDev').toString()
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        client2 {
+            client()
+            programArguments.addAll '--username', (findProperty('dev_player_name_2') ?: 'BobbyChestsDev2').toString()
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
@@ -80,6 +111,13 @@ neoForge {
 
         // applies to all the run configs above
         configureEach {
+            gameDirectory = file("runs/${name}")
+
+            // This hotswap flag only exists on JetBrains Runtime builds.
+            if (runJavaVendor.get().contains("JetBrains")) {
+                jvmArguments.add("-XX:+AllowEnhancedClassRedefinition")
+            }
+
             // Recommended logging data for a userdev environment
             // The markers can be added/remove as needed separated by commas.
             // "SCAN": For mods scan.
@@ -113,12 +151,10 @@ configurations {
 }
 
 dependencies {
-    // Example optional mod dependency with JEI
-    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
-    // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
-    // compileOnly "mezz.jei:jei-${mc_version}-neoforge-api:${jei_version}"
-    // We add the full version to localRuntime, not runtimeOnly, so that we do not publish a dependency on it
-    // localRuntime "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+    // JEI
+    compileOnly "mezz.jei:jei-${jei_mc_version}-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${jei_mc_version}-neoforge-api:${jei_version}"
+    runtimeOnly "mezz.jei:jei-${jei_mc_version}-neoforge:${jei_version}"
 
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
@@ -134,6 +170,9 @@ dependencies {
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
+    addLocalArtifacts('localRuntime', extraModsDir)
+    addLocalArtifacts('compileOnly', extraAPIDir, "extra-api")
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -182,5 +221,16 @@ idea {
     module {
         downloadSources = true
         downloadJavadoc = true
+    }
+}
+
+def addLocalArtifacts(configurationName, dir, prefix = "extra-mods") {
+    for (extraModJar in fileTree(dir: dir, include: '*.jar')) {
+        def basename = extraModJar.name.substring(0, extraModJar.name.length() - ".jar".length())
+        def versionSep = basename.lastIndexOf('-')
+        assert versionSep != -1
+        def artifactId = basename.substring(0, versionSep)
+        def version = basename.substring(versionSep + 1)
+        dependencies.add(configurationName, "${prefix}:$artifactId:$version")
     }
 }
