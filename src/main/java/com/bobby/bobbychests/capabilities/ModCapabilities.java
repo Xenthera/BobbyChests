@@ -2,7 +2,9 @@ package com.bobby.bobbychests.capabilities;
 
 import com.bobby.bobbychests.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.blockentity.ModBlockEntities;
+import com.bobby.bobbychests.compat.computercraft.ComputerCraftCompat;
 import net.minecraft.core.Direction;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import org.jetbrains.annotations.Nullable;
@@ -52,6 +54,9 @@ public final class ModCapabilities {
                 ModBlockEntities.DIRT_CHEST.get(),
                 (AbstractTieredChestBlockEntity chest, @Nullable Direction side) -> chest.getItemResourceHandler(side)
         );
+        if (ModList.get().isLoaded("computercraft")) {
+            ComputerCraftCompat.register(event);
+        }
     }
 }
 

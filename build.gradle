@@ -28,6 +28,7 @@ sourceSets.main.resources {
 
 // All jar files from these folders are added automatically as local dev dependencies.
 def extraModsDir = "extra-mods"
+def extraLibsDir = "extra-libs"
 def extraAPIDir = "extra-api"
 
 repositories {
@@ -38,17 +39,22 @@ repositories {
         dir file(extraModsDir)
     }
 
-    flatDir {
-        name "extra-api"
-        dir file(extraAPIDir)
-    }
-
     maven {
         url 'https://maven.blamejared.com'
         content {
             includeGroup "mezz.jei"
             includeGroup "vazkii.patchouli"
         }
+    }
+
+    flatDir {
+        name "extra-libs"
+        dir file(extraLibsDir)
+    }
+
+    flatDir {
+        name "extra-api"
+        dir file(extraAPIDir)
     }
 }
 
@@ -63,9 +69,14 @@ def runJavaVendor = providers.provider {
     javaToolchains.launcherFor(java.toolchain).get().metadata.vendor
 }
 
+def currentModId = mod_id.toString()
+def currentNeoVersion = neo_version.toString()
+def generatedResourcesDir = file('src/generated/resources/').getAbsolutePath()
+def mainResourcesDir = file('src/main/resources/').getAbsolutePath()
+
 neoForge {
     // Specify the version of NeoForge to use.
-    version = project.neo_version
+    version = currentNeoVersion
 
     // This line is optional. Access Transformers are automatically detected
     // accessTransformers = project.files('src/main/resources/META-INF/accesstransformer.cfg')
@@ -77,19 +88,19 @@ neoForge {
             client()
             programArguments.addAll '--username', (findProperty('dev_player_name') ?: 'BobbyChestsDev').toString()
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'neoforge.enabledGameTestNamespaces', currentModId
         }
 
         client2 {
             client()
             programArguments.addAll '--username', (findProperty('dev_player_name_2') ?: 'BobbyChestsDev2').toString()
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'neoforge.enabledGameTestNamespaces', currentModId
         }
 
         server {
             server()
             programArguments.addAll '--port', '25567'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'neoforge.enabledGameTestNamespaces', currentModId
         }
 
         // This run config launches GameTestServer and runs all registered gametests, then exits.
@@ -97,7 +108,7 @@ neoForge {
         // The gametest system is also enabled by default for other run configs under the /test command.
         gameTestServer {
             type = "gameTestServer"
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'neoforge.enabledGameTestNamespaces', currentModId
         }
 
         data {
@@ -107,7 +118,7 @@ neoForge {
             // gameDirectory = project.file('run-data')
 
             // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
-            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+            programArguments.addAll '--mod', currentModId, '--all', '--output', generatedResourcesDir, '--existing', mainResourcesDir
         }
 
         // applies to all the run configs above
@@ -137,7 +148,7 @@ neoForge {
         // define mod <-> source bindings
         // these are used to tell the game which sources are for which mod
         // multi mod projects should define one per mod
-        "${mod_id}" {
+        "${currentModId}" {
             sourceSet(sourceSets.main)
         }
     }
@@ -177,6 +188,7 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
     addLocalArtifacts('localRuntime', extraModsDir)
+    addLocalArtifacts('compileOnly', extraLibsDir, "extra-libs")
     addLocalArtifacts('compileOnly', extraAPIDir, "extra-api")
 }
 
