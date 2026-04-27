@@ -1,0 +1,17 @@
+{
+  "name": "Copper Chest",
+  "icon": "bobbychests:copper_chest",
+  "sortnum": 3,
+  "category": "bobbychests:chests",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Copper Chest is an early material upgrade.$(br2)It sits above the basic tiers and gives storage setups room to grow before moving into stronger metals."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Copper Chest",
+      "recipe": "bobbychests:copper_chest"
+    }
+  ]
+}

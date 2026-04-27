@@ -1,0 +1,17 @@
+{
+  "name": "Gold Chest",
+  "icon": "bobbychests:gold_chest",
+  "sortnum": 5,
+  "category": "bobbychests:chests",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Gold Chest is a higher storage tier.$(br2)It offers a more valuable material step in the Bobby Chests progression."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Gold Chest",
+      "recipe": "bobbychests:gold_chest"
+    }
+  ]
+}

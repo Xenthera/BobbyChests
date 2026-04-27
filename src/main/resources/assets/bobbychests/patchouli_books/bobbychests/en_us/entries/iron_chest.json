@@ -1,0 +1,17 @@
+{
+  "name": "Iron Chest",
+  "icon": "bobbychests:iron_chest",
+  "sortnum": 4,
+  "category": "bobbychests:chests",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Iron Chest is a dependable mid-tier storage block.$(br2)It is well suited for bases that need more organization without jumping straight into precious materials."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Iron Chest",
+      "recipe": "bobbychests:iron_chest"
+    }
+  ]
+}

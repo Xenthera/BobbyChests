@@ -1,0 +1,17 @@
+{
+  "name": "Wooden Chest",
+  "icon": "bobbychests:wooden_chest",
+  "sortnum": 2,
+  "category": "bobbychests:chests",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Wooden Chest is the standard starting point for Bobby Chests.$(br2)It provides basic storage in a familiar chest tier."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Wooden Chest",
+      "recipe": "bobbychests:wooden_chest"
+    }
+  ]
+}

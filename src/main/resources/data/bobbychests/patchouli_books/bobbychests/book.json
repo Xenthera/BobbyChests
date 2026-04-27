@@ -1,0 +1,8 @@
+{
+  "name": "Bobby Chests Guide",
+  "landing_text": "Welcome to Bobby Chests. This guide gives a simple overview of each chest tier, from basic starter storage to larger scrollable inventories.",
+  "version": 1,
+  "creative_tab": "bobbychests:bobby_chests",
+  "getCreatorModId": "bobbychests",
+  "use_resource_pack": "true"
+}

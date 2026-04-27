@@ -1,0 +1,17 @@
+{
+  "name": "Diamond Chest",
+  "icon": "bobbychests:diamond_chest",
+  "sortnum": 6,
+  "category": "bobbychests:chests",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Diamond Chest is a high-capacity storage tier.$(br2)It fits larger bases and storage rooms that need substantial space in a compact block."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Diamond Chest",
+      "recipe": "bobbychests:diamond_chest"
+    }
+  ]
+}
