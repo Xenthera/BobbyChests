@@ -51,14 +51,13 @@ public class BobbyChests {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
 
-    // Creates a creative tab with the id "bobbychests:example_tab" for the example item, that is placed after the combat tab
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> EXAMPLE_TAB = CREATIVE_MODE_TABS.register("example_tab", () -> CreativeModeTab.builder()
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> BOBBY_CHESTS_TAB = CREATIVE_MODE_TABS.register("bobby_chests", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.bobbychests")) //The language key for the title of your CreativeModeTab
-            .withTabsBefore(CreativeModeTabs.COMBAT)
+            .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
             .icon(() -> ModBlocks.WOODEN_CHEST.get().asItem().getDefaultInstance())
             .displayItems((parameters, output) -> {
                 output.accept(ModBlocks.DIRT_CHEST.get());
-                output.accept(ModBlocks.WOODEN_CHEST.get()); // Add the example item to the tab. For your own tabs, this method is preferred over the event
+                output.accept(ModBlocks.WOODEN_CHEST.get());
                 output.accept(ModBlocks.COPPER_CHEST.get());
                 output.accept(ModBlocks.IRON_CHEST.get());
                 output.accept(ModBlocks.GOLD_CHEST.get());
