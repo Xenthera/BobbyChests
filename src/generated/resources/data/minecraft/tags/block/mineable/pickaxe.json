@@ -1,0 +1,12 @@
+{
+  "values": [
+    "bobbychests:dirt_chest",
+    "bobbychests:wooden_chest",
+    "bobbychests:copper_chest",
+    "bobbychests:iron_chest",
+    "bobbychests:gold_chest",
+    "bobbychests:diamond_chest",
+    "bobbychests:emerald_chest",
+    "bobbychests:netherite_chest"
+  ]
+}

@@ -47,6 +47,14 @@ repositories {
         }
     }
 
+    maven {
+        url 'https://maven.rover656.dev/releases'
+        content {
+            includeGroup "com.enderio"
+            includeGroup "dev.gigaherz.graph"
+        }
+    }
+
     flatDir {
         name "extra-libs"
         dir file(extraLibsDir)
@@ -171,6 +179,10 @@ dependencies {
     // Patchouli
     compileOnly "vazkii.patchouli:patchouli-neoforge:${patchouli_version}:api"
     localRuntime "vazkii.patchouli:patchouli-neoforge:${patchouli_version}"
+
+    // Ender IO
+    compileOnly "com.enderio:enderio:${enderio_version}:api"
+    localRuntime "com.enderio:enderio:${enderio_version}"
 
     // Example mod dependency using a mod jar from ./libs with a flat dir repository
     // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar

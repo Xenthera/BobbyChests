@@ -1,0 +1,22 @@
+{
+  "block.bobbychests.copper_chest": "Copper Chest",
+  "block.bobbychests.diamond_chest": "Diamond Chest",
+  "block.bobbychests.dirt_chest": "Dirt Chest",
+  "block.bobbychests.emerald_chest": "Emerald Chest",
+  "block.bobbychests.gold_chest": "Gold Chest",
+  "block.bobbychests.iron_chest": "Iron Chest",
+  "block.bobbychests.netherite_chest": "Netherite Chest",
+  "block.bobbychests.wooden_chest": "Wooden Chest",
+  "bobbychests.configuration.section.bobbychests.common.toml": "Bobby Chests Config",
+  "bobbychests.configuration.section.bobbychests.common.toml.title": "Bobby Chests Config",
+  "bobbychests.configuration.title": "Bobby Chests Config",
+  "container.bobbychests.copper_chest": "Copper Chest",
+  "container.bobbychests.diamond_chest": "Diamond Chest",
+  "container.bobbychests.dirt_chest": "Dirt Chest",
+  "container.bobbychests.emerald_chest": "Emerald Chest",
+  "container.bobbychests.gold_chest": "Gold Chest",
+  "container.bobbychests.iron_chest": "Iron Chest",
+  "container.bobbychests.netherite_chest": "Netherite Chest",
+  "container.bobbychests.wooden_chest": "Wooden Chest",
+  "itemGroup.bobbychests": "Bobby Chests"
+}
