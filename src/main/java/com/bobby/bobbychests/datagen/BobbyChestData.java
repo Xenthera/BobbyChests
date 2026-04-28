@@ -1,6 +1,6 @@
 package com.bobby.bobbychests.datagen;
 
-import com.bobby.bobbychests.block.ModBlocks;
+import com.bobby.bobbychests.registry.ModBlocks;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;

@@ -1,7 +1,7 @@
 package com.bobby.bobbychests.compat.computercraft;
 
-import com.bobby.bobbychests.blockentity.AbstractTieredChestBlockEntity;
-import com.bobby.bobbychests.blockentity.ModBlockEntities;
+import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
+import com.bobby.bobbychests.registry.ModBlockEntities;
 import dan200.computercraft.api.peripheral.PeripheralCapability;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntityType;

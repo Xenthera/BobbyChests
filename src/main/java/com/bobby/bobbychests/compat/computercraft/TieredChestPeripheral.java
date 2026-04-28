@@ -1,8 +1,8 @@
 package com.bobby.bobbychests.compat.computercraft;
 
 import com.bobby.bobbychests.BobbyChests;
-import com.bobby.bobbychests.blockentity.AbstractTieredChestBlockEntity;
-import com.bobby.bobbychests.globalcheststorage.GlobalTieredChestData;
+import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
+import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
 import dan200.computercraft.api.detail.VanillaDetailRegistries;
 import dan200.computercraft.api.lua.LuaException;
 import dan200.computercraft.api.lua.LuaFunction;

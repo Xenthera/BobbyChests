@@ -1,7 +1,7 @@
 package com.bobby.bobbychests.network;
 
-import com.bobby.bobbychests.blockentity.TieredGlobalChest;
-import com.bobby.bobbychests.menu.AbstractScrollableChestMenu;
+import com.bobby.bobbychests.chest.blockentity.TieredGlobalChest;
+import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;

@@ -1,6 +1,6 @@
 package com.bobby.bobbychests.command;
 
-import com.bobby.bobbychests.globalcheststorage.GlobalTieredChestData;
+import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
