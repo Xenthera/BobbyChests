@@ -1,10 +1,11 @@
 package com.bobby.bobbychests.chest.menu.gold;
 
+import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.registry.ModMenus;
 import com.bobby.bobbychests.chest.menu.AbstractTieredChestMenuProvider;
 
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
-import com.bobby.bobbychests.chest.storage.GlobalTieredChestContainer;
+import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
@@ -12,7 +13,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
 public final class GoldChestMenuProvider extends AbstractTieredChestMenuProvider {
-    public GoldChestMenuProvider(Component title, GlobalTieredChestContainer container, BlockPos pos, AbstractTieredChestBlockEntity chest) {
+    public GoldChestMenuProvider(Component title, RoutedChestContainer container, BlockPos pos, AbstractTieredChestBlockEntity chest) {
         super(title, container, pos, chest);
     }
 
@@ -26,6 +27,7 @@ public final class GoldChestMenuProvider extends AbstractTieredChestMenuProvider
                 this.chest.getGlobalStorageId(),
                 this.chest.isLocked(),
                 this.chest.getOwnerUuid(),
+                this.chest.getStorageMode() == ChestStorageMode.GLOBAL,
                 this.chest.getTier().maxChannelId()
         );
     }

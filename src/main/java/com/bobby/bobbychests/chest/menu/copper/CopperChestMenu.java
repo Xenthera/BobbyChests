@@ -20,7 +20,7 @@ public final class CopperChestMenu extends AbstractChestMenu {
     private static final int CHEST_SLOTS = SLOTS_PER_ROW * ROWS; // 18
 
     public static CopperChestMenu clientConstructor(int syncId, Inventory playerInventory) {
-        return new CopperChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), BlockPos.ZERO, 0, false, null, ChestTier.COPPER.maxChannelId());
+        return new CopperChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), BlockPos.ZERO, 0, false, null, true, ChestTier.COPPER.maxChannelId());
     }
 
     public static CopperChestMenu clientConstructor(int syncId, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
@@ -30,11 +30,12 @@ public final class CopperChestMenu extends AbstractChestMenu {
         boolean locked = buf.readBoolean();
         String owner = buf.readUtf();
         UUID ownerUuid = owner.isEmpty() ? null : UUID.fromString(owner);
-        return new CopperChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), pos, id, locked, ownerUuid, maxChannelId);
+        boolean usingGlobalStorage = buf.readBoolean();
+        return new CopperChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), pos, id, locked, ownerUuid, usingGlobalStorage, maxChannelId);
     }
 
-    public CopperChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, int maxChannelId) {
-        super(ModMenus.COPPER_CHEST_MENU.get(), syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, maxChannelId);
+    public CopperChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, boolean initialUsingGlobalStorage, int maxChannelId) {
+        super(ModMenus.COPPER_CHEST_MENU.get(), syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, initialUsingGlobalStorage, maxChannelId);
 
         this.chestSlotCount = CHEST_SLOTS;
         int slotIndex = 0;

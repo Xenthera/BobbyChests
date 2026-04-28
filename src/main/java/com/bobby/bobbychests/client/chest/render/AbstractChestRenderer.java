@@ -2,6 +2,7 @@ package com.bobby.bobbychests.client.chest.render;
 
 import com.bobby.bobbychests.BobbyChests;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
+import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.object.chest.ChestModel;
 import net.minecraft.client.renderer.MultiblockChestResources;
@@ -14,22 +15,30 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.sprite.SpriteId;
 import net.minecraft.resources.Identifier;
+import org.jspecify.annotations.Nullable;
 
 public abstract class AbstractChestRenderer<T extends AbstractTieredChestBlockEntity> extends ChestRenderer<T> {
-    private final MultiblockChestResources<SpriteId> spritesForTier;
+    private final MultiblockChestResources<SpriteId> spritesGlobal;
+    private final MultiblockChestResources<SpriteId> spritesLocal;
 
     protected AbstractChestRenderer(BlockEntityRendererProvider.Context context, String baseTextureName) {
         super(context);
-        SpriteId single = new SpriteId(
+        SpriteId globalSingle = new SpriteId(
                 Sheets.CHEST_SHEET,
                 Identifier.fromNamespaceAndPath(BobbyChests.MODID, "entity/chest/" + baseTextureName));
-        SpriteId left = new SpriteId(
+        SpriteId localSingle = new SpriteId(
                 Sheets.CHEST_SHEET,
-                Identifier.fromNamespaceAndPath(BobbyChests.MODID, "entity/chest/" + baseTextureName + "_left"));
-        SpriteId right = new SpriteId(
-                Sheets.CHEST_SHEET,
-                Identifier.fromNamespaceAndPath(BobbyChests.MODID, "entity/chest/" + baseTextureName + "_right"));
-        this.spritesForTier = new MultiblockChestResources<>(single, left, right);
+                Identifier.fromNamespaceAndPath(BobbyChests.MODID, "entity/chest/" + baseTextureName + "_no_id"));
+        // Our chests never form doubles, but ChestRenderState still has a type. Use the same sprite for all.
+        this.spritesGlobal = new MultiblockChestResources<>(globalSingle, globalSingle, globalSingle);
+        this.spritesLocal = new MultiblockChestResources<>(localSingle, localSingle, localSingle);
+    }
+
+    @Override
+    protected @Nullable SpriteId getCustomSprite(T blockEntity, ChestRenderState renderState) {
+        MultiblockChestResources<SpriteId> sprites =
+                blockEntity.getStorageMode() == ChestStorageMode.GLOBAL ? this.spritesGlobal : this.spritesLocal;
+        return sprites.select(renderState.type);
     }
 
     @Override
@@ -42,7 +51,8 @@ public abstract class AbstractChestRenderer<T extends AbstractTieredChestBlockEn
         open = 1.0F - open;
         open = 1.0F - open * open * open;
 
-        SpriteId sprite = this.spritesForTier.select(state.type);
+        // Vanilla submit uses state.customSprite if present; we set that in getCustomSprite().
+        SpriteId sprite = state.customSprite != null ? state.customSprite : this.spritesGlobal.select(state.type);
         ChestModel model = this.models.select(state.type);
         collector.submitModel(
                 model,

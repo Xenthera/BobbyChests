@@ -1,5 +1,6 @@
 package com.bobby.bobbychests.chest.block;
 
+import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -59,6 +60,10 @@ public abstract class AbstractTieredChestBlock extends ChestBlock {
     @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
         super.animateTick(state, level, pos, random);
+        BlockEntity be = level.getBlockEntity(pos);
+        if (!(be instanceof AbstractTieredChestBlockEntity chest) || chest.getStorageMode() != ChestStorageMode.GLOBAL) {
+            return;
+        }
         // Ender-chest-like portal particles.
         for (int i = 0; i < 3; i++) {
             int xOffset = random.nextInt(2) * 2 - 1;
@@ -138,7 +143,10 @@ public abstract class AbstractTieredChestBlock extends ChestBlock {
             updatedState = updatedState.setValue(TYPE, ChestType.SINGLE);
         }
         if (directionToNeighbour == Direction.UP && level instanceof ServerLevel serverLevel && neighbourPos.equals(pos.above())) {
-            GlobalTieredChestData.get(serverLevel).onChestAboveChanged(serverLevel, pos);
+            BlockEntity blockEntity = serverLevel.getBlockEntity(pos);
+            if (blockEntity instanceof AbstractTieredChestBlockEntity chest && chest.getStorageMode() == ChestStorageMode.GLOBAL) {
+                GlobalTieredChestData.get(serverLevel).onChestAboveChanged(serverLevel, pos);
+            }
         }
         return updatedState;
     }

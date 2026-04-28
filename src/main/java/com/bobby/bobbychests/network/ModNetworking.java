@@ -1,7 +1,9 @@
 package com.bobby.bobbychests.network;
 
 import com.bobby.bobbychests.chest.blockentity.TieredGlobalChest;
+import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
+import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -38,6 +40,22 @@ public final class ModNetworking {
                         }
 
                         chest.setLocked(payload.locked(), ctx.player());
+                    });
+                })
+                .playToServer(SetStorageModePayload.TYPE, SetStorageModePayload.STREAM_CODEC, (payload, ctx) -> {
+                    ctx.enqueueWork(() -> {
+                        if (!(ctx.player().level() instanceof ServerLevel level)) {
+                            return;
+                        }
+                        BlockEntity be = level.getBlockEntity(payload.pos());
+                        if (!(be instanceof AbstractTieredChestBlockEntity chest)) {
+                            return;
+                        }
+                        if (!chest.canPlayerOpen(ctx.player())) {
+                            return;
+                        }
+
+                        chest.setStorageMode(payload.usingGlobalStorage() ? ChestStorageMode.GLOBAL : ChestStorageMode.LOCAL);
                     });
                 })
                 .playToServer(SetScrollableChestScrollPayload.TYPE, SetScrollableChestScrollPayload.STREAM_CODEC, (payload, ctx) -> {

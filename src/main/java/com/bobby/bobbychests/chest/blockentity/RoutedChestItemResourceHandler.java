@@ -1,6 +1,5 @@
 package com.bobby.bobbychests.chest.blockentity;
 
-import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
@@ -14,21 +13,21 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 
 /**
- * Item transfer capability backed directly by the chest's frequency-based global storage.
+ * Item transfer capability backed by the chest's active storage route.
  */
-final class GlobalChestItemResourceHandler implements ResourceHandler<ItemResource> {
+final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResource> {
     private final AbstractTieredChestBlockEntity chest;
     private final ArrayList<SlotJournal> journals = new ArrayList<>();
 
-    GlobalChestItemResourceHandler(AbstractTieredChestBlockEntity chest) {
+    RoutedChestItemResourceHandler(AbstractTieredChestBlockEntity chest) {
         this.chest = chest;
     }
 
     private @Nullable NonNullList<ItemStack> items() {
-        if (!(this.chest.getLevel() instanceof ServerLevel serverLevel)) {
+        if (!(this.chest.getLevel() instanceof ServerLevel)) {
             return null;
         }
-        return GlobalTieredChestData.get(serverLevel).getItemsForChest(this.chest);
+        return this.chest.getActiveItems();
     }
 
     private SlotJournal journal(int slot) {
@@ -134,7 +133,7 @@ final class GlobalChestItemResourceHandler implements ResourceHandler<ItemResour
         }
 
         private NonNullList<ItemStack> items() {
-            return GlobalTieredChestData.get((ServerLevel) this.chest.getLevel()).getItemsForChest(this.chest);
+            return this.chest.getActiveItems();
         }
 
         @Override

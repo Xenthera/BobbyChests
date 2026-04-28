@@ -268,7 +268,7 @@ public abstract class AbstractScrollableChestScreen<M extends AbstractScrollable
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
-        Identifier bg = this.guiAssets.background();
+        Identifier bg = this.usingGlobalStorage() ? this.guiAssets.background() : this.guiAssets.backgroundNoId();
         graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
                 bg,

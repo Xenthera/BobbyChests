@@ -26,6 +26,7 @@ public final class EmeraldChestMenu extends AbstractScrollableChestMenu {
                 0,
                 false,
                 null,
+                true,
                 ChestTier.EMERALD.maxChannelId()
         );
     }
@@ -37,10 +38,11 @@ public final class EmeraldChestMenu extends AbstractScrollableChestMenu {
         boolean locked = buf.readBoolean();
         String owner = buf.readUtf();
         UUID ownerUuid = owner.isEmpty() ? null : UUID.fromString(owner);
-        return new EmeraldChestMenu(syncId, playerInventory, new SimpleContainer(STORAGE_SLOTS), pos, id, locked, ownerUuid, maxChannelId);
+        boolean usingGlobalStorage = buf.readBoolean();
+        return new EmeraldChestMenu(syncId, playerInventory, new SimpleContainer(STORAGE_SLOTS), pos, id, locked, ownerUuid, usingGlobalStorage, maxChannelId);
     }
 
-    public EmeraldChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, int maxChannelId) {
+    public EmeraldChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, boolean initialUsingGlobalStorage, int maxChannelId) {
         super(
                 ModMenus.EMERALD_CHEST_MENU.get(),
                 syncID,
@@ -50,6 +52,7 @@ public final class EmeraldChestMenu extends AbstractScrollableChestMenu {
                 initialChestId,
                 initialLocked,
                 initialOwnerUuid,
+                initialUsingGlobalStorage,
                 maxChannelId,
                 SLOTS_PER_ROW,
                 TOTAL_CHEST_ROWS,

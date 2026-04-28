@@ -89,7 +89,7 @@ public class GlobalTieredChestData extends SavedData {
             ChestTier tier = ChestTier.fromIdOrDefault(entry.tier(), ChestTier.WOOD);
 
             // Must be a mutable NonNullList: NonNullList.copyOf wraps codec lists that are often immutable
-            // (List.of / unmodifiable), and GlobalTieredChestContainer.setItem would throw after load.
+            // (List.of / unmodifiable), and routed container mutations would throw after load.
             List<ItemStack> rawItems = entry.items();
             NonNullList<ItemStack> loaded = resizedCopy(rawItems, rawItems.size());
 

@@ -5,8 +5,7 @@ import com.bobby.bobbychests.chest.block.AbstractTieredChestBlock;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.blockentity.iron.IronChestBlockEntity;
 import com.bobby.bobbychests.registry.ModBlockEntities;
-import com.bobby.bobbychests.chest.storage.GlobalTieredChestContainer;
-import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
+import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
 import com.bobby.bobbychests.chest.menu.iron.IronChestMenuProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -29,9 +28,8 @@ public class IronChestBlock extends AbstractTieredChestBlock {
 
     @Override
     protected MenuProvider createMenuProvider(ServerLevel serverLevel, BlockPos pos, AbstractTieredChestBlockEntity chest, Component title) {
-        GlobalTieredChestData global = GlobalTieredChestData.get(serverLevel);
-        GlobalTieredChestContainer globalContainer = new GlobalTieredChestContainer(global, chest);
-        return new IronChestMenuProvider(title, globalContainer, pos, chest);
+        RoutedChestContainer container = new RoutedChestContainer(chest);
+        return new IronChestMenuProvider(title, container, pos, chest);
     }
 
     @Override

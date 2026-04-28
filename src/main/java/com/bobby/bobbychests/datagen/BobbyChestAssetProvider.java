@@ -80,7 +80,8 @@ public final class BobbyChestAssetProvider implements DataProvider {
         model.addProperty("base", "minecraft:item/chest");
         model.add("model", specialModel);
         specialModel.addProperty("type", "minecraft:chest");
-        specialModel.addProperty("texture", BobbyChests.MODID + ":" + chest.id());
+        // Default to local-mode visuals for the item in inventory/hand.
+        specialModel.addProperty("texture", BobbyChests.MODID + ":" + chest.id() + "_no_id");
         return root;
     }
 }

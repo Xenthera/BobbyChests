@@ -12,6 +12,7 @@ import net.minecraft.world.entity.player.Inventory;
 
 public final class GoldChestScreen extends AbstractChestScreen<GoldChestMenu> {
     private static final Identifier BG = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "textures/gui/bobby_base_chest_54.png");
+    private static final Identifier BG_NO_ID = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "textures/gui/bobby_base_chest_54_no_id.png");
 
     public GoldChestScreen(GoldChestMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -22,7 +23,7 @@ public final class GoldChestScreen extends AbstractChestScreen<GoldChestMenu> {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
         graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
-                BG,
+                this.usingGlobalStorage() ? BG : BG_NO_ID,
                 this.leftPos, this.topPos,
                 0, 0,
                 this.imageWidth, this.imageHeight,

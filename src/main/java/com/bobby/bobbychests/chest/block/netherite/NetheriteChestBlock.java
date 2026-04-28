@@ -4,8 +4,7 @@ import com.bobby.bobbychests.chest.block.AbstractTieredChestBlock;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.registry.ModBlockEntities;
 import com.bobby.bobbychests.chest.blockentity.netherite.NetheriteChestBlockEntity;
-import com.bobby.bobbychests.chest.storage.GlobalTieredChestContainer;
-import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
+import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
 import com.bobby.bobbychests.chest.menu.netherite.NetheriteChestMenuProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -34,9 +33,8 @@ public final class NetheriteChestBlock extends AbstractTieredChestBlock {
 
     @Override
     protected MenuProvider createMenuProvider(ServerLevel serverLevel, BlockPos pos, AbstractTieredChestBlockEntity chest, Component title) {
-        GlobalTieredChestData global = GlobalTieredChestData.get(serverLevel);
-        GlobalTieredChestContainer globalContainer = new GlobalTieredChestContainer(global, chest);
-        return new NetheriteChestMenuProvider(title, globalContainer, pos, chest);
+        RoutedChestContainer container = new RoutedChestContainer(chest);
+        return new NetheriteChestMenuProvider(title, container, pos, chest);
     }
 
     @Override

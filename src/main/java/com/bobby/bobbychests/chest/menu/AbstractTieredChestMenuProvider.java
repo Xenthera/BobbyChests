@@ -1,7 +1,8 @@
 package com.bobby.bobbychests.chest.menu;
 
+import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
-import com.bobby.bobbychests.chest.storage.GlobalTieredChestContainer;
+import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -14,15 +15,15 @@ import net.neoforged.neoforge.common.extensions.IMenuProviderExtension;
 /**
  * Shared implementation for our tier-specific menu providers.
  *
- * <p>Writes the common open-menu payload: (pos, id, locked, ownerUuid).</p>
+ * <p>Writes the common open-menu payload: (pos, id, locked, ownerUuid, storage mode).</p>
  */
 public abstract class AbstractTieredChestMenuProvider implements MenuProvider, IMenuProviderExtension {
     protected final Component title;
-    protected final GlobalTieredChestContainer container;
+    protected final RoutedChestContainer container;
     protected final BlockPos pos;
     protected final AbstractTieredChestBlockEntity chest;
 
-    protected AbstractTieredChestMenuProvider(Component title, GlobalTieredChestContainer container, BlockPos pos, AbstractTieredChestBlockEntity chest) {
+    protected AbstractTieredChestMenuProvider(Component title, RoutedChestContainer container, BlockPos pos, AbstractTieredChestBlockEntity chest) {
         this.title = title;
         this.container = container;
         this.pos = pos;
@@ -41,6 +42,7 @@ public abstract class AbstractTieredChestMenuProvider implements MenuProvider, I
         buf.writeVarInt(this.chest.getGlobalStorageId());
         buf.writeBoolean(this.chest.isLocked());
         buf.writeUtf(this.chest.getOwnerUuid() == null ? "" : this.chest.getOwnerUuid().toString());
+        buf.writeBoolean(this.chest.getStorageMode() == ChestStorageMode.GLOBAL);
     }
 
     @Override

@@ -23,11 +23,12 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     protected final int initialChestId;
     protected final boolean initialLocked;
     protected final UUID initialOwnerUuid;
+    protected final boolean initialUsingGlobalStorage;
     protected final int maxChannelId;
 
     protected int chestSlotCount;
 
-    protected AbstractChestMenu(net.minecraft.world.inventory.MenuType<?> type, int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, int maxChannelId) {
+    protected AbstractChestMenu(net.minecraft.world.inventory.MenuType<?> type, int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, boolean initialUsingGlobalStorage, int maxChannelId) {
         super(type, syncID);
         this.container = Objects.requireNonNull(container);
         this.level = playerInventory.player.level();
@@ -35,6 +36,7 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
         this.initialChestId = initialChestId;
         this.initialLocked = initialLocked;
         this.initialOwnerUuid = initialOwnerUuid;
+        this.initialUsingGlobalStorage = initialUsingGlobalStorage;
         this.maxChannelId = maxChannelId;
 
         this.container.startOpen(playerInventory.player);
@@ -66,6 +68,10 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
 
     public final UUID getInitialOwnerUuid() {
         return this.initialOwnerUuid;
+    }
+
+    public final boolean getInitialUsingGlobalStorage() {
+        return this.initialUsingGlobalStorage;
     }
 
     public final int getChestSlotCount() {

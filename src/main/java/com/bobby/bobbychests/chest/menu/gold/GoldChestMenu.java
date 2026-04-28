@@ -20,7 +20,7 @@ public final class GoldChestMenu extends AbstractChestMenu {
     private static final int CHEST_SLOTS = SLOTS_PER_ROW * ROWS; // 54
 
     public static GoldChestMenu clientConstructor(int syncId, Inventory playerInventory) {
-        return new GoldChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), BlockPos.ZERO, 0, false, null, ChestTier.GOLD.maxChannelId());
+        return new GoldChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), BlockPos.ZERO, 0, false, null, true, ChestTier.GOLD.maxChannelId());
     }
 
     public static GoldChestMenu clientConstructor(int syncId, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
@@ -30,11 +30,12 @@ public final class GoldChestMenu extends AbstractChestMenu {
         boolean locked = buf.readBoolean();
         String owner = buf.readUtf();
         UUID ownerUuid = owner.isEmpty() ? null : UUID.fromString(owner);
-        return new GoldChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), pos, id, locked, ownerUuid, maxChannelId);
+        boolean usingGlobalStorage = buf.readBoolean();
+        return new GoldChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), pos, id, locked, ownerUuid, usingGlobalStorage, maxChannelId);
     }
 
-    public GoldChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, int maxChannelId) {
-        super(ModMenus.GOLD_CHEST_MENU.get(), syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, maxChannelId);
+    public GoldChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, boolean initialUsingGlobalStorage, int maxChannelId) {
+        super(ModMenus.GOLD_CHEST_MENU.get(), syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, initialUsingGlobalStorage, maxChannelId);
 
         this.chestSlotCount = CHEST_SLOTS;
         int slotIndex = 0;

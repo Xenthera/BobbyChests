@@ -2,6 +2,7 @@ package com.bobby.bobbychests.chest.storage;
 
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import net.minecraft.core.NonNullList;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.ContainerUser;
@@ -10,18 +11,15 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.Iterator;
 
-public class GlobalTieredChestContainer implements Container {
-
-    private final GlobalTieredChestData data;
+public class RoutedChestContainer implements Container {
     private final AbstractTieredChestBlockEntity chest;
 
-    public GlobalTieredChestContainer(GlobalTieredChestData data, AbstractTieredChestBlockEntity chest) {
-        this.data = data;
+    public RoutedChestContainer(AbstractTieredChestBlockEntity chest) {
         this.chest = chest;
     }
 
     private NonNullList<ItemStack> items() {
-        return this.data.getItemsForChest(this.chest);
+        return this.chest.getActiveItems();
     }
 
     public AbstractTieredChestBlockEntity getChest() {
@@ -36,7 +34,9 @@ public class GlobalTieredChestContainer implements Container {
     @Override
     public boolean isEmpty() {
         for (ItemStack stack : this.items()) {
-            if (!stack.isEmpty()) return false;
+            if (!stack.isEmpty()) {
+                return false;
+            }
         }
         return true;
     }
@@ -49,28 +49,32 @@ public class GlobalTieredChestContainer implements Container {
     @Override
     public ItemStack removeItem(int slot, int amount) {
         ItemStack result = ContainerHelper.removeItem(this.items(), slot, amount);
-        if (!result.isEmpty()) this.data.markChangedAndNotify(this.chest);
+        if (!result.isEmpty()) {
+            this.chest.setChanged();
+        }
         return result;
     }
 
     @Override
     public ItemStack removeItemNoUpdate(int slot) {
         ItemStack stack = this.items().get(slot);
-        if (stack.isEmpty()) return ItemStack.EMPTY;
+        if (stack.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
         this.items().set(slot, ItemStack.EMPTY);
-        this.data.markChangedAndNotify(this.chest);
+        this.chest.setChanged();
         return stack;
     }
 
     @Override
     public void setItem(int slot, ItemStack stack) {
         this.items().set(slot, stack);
-        this.data.markChangedAndNotify(this.chest);
+        this.chest.setChanged();
     }
 
     @Override
     public void setChanged() {
-        this.data.markChangedAndNotify(this.chest);
+        this.chest.setChanged();
     }
 
     @Override
@@ -83,19 +87,29 @@ public class GlobalTieredChestContainer implements Container {
 
     @Override
     public void startOpen(ContainerUser user) {
-        this.data.onChestOpen(this.chest);
+        if (this.chest.getStorageMode() == ChestStorageMode.GLOBAL && this.chest.getLevel() instanceof ServerLevel serverLevel) {
+            GlobalTieredChestData.get(serverLevel).onChestOpen(this.chest);
+        }
         this.chest.startOpen(user);
     }
 
     @Override
     public void stopOpen(ContainerUser user) {
-        this.data.onChestClose(this.chest);
+        if (this.chest.getStorageMode() == ChestStorageMode.GLOBAL && this.chest.getLevel() instanceof ServerLevel serverLevel) {
+            GlobalTieredChestData.get(serverLevel).onChestClose(this.chest);
+        }
         this.chest.stopOpen(user);
     }
 
     @Override
     public void clearContent() {
-        // Never clear the shared global list from the menu wrapper (would empty all chests).
+        if (this.chest.getStorageMode() != ChestStorageMode.GLOBAL) {
+            NonNullList<ItemStack> items = this.items();
+            for (int slot = 0; slot < items.size(); slot++) {
+                items.set(slot, ItemStack.EMPTY);
+            }
+            this.chest.setChanged();
+        }
     }
 
     @Override
@@ -103,4 +117,3 @@ public class GlobalTieredChestContainer implements Container {
         return this.items().iterator();
     }
 }
-

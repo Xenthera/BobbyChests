@@ -12,6 +12,7 @@ import net.minecraft.world.entity.player.Inventory;
 
 public final class DiamondChestScreen extends AbstractChestScreen<DiamondChestMenu> {
     private static final Identifier BG = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "textures/gui/bobby_base_chest_108.png");
+    private static final Identifier BG_NO_ID = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "textures/gui/bobby_base_chest_108_no_id.png");
     private static final int ID_BOX_W = 62;
 
     public DiamondChestScreen(DiamondChestMenu menu, Inventory inv, Component title) {
@@ -34,7 +35,7 @@ public final class DiamondChestScreen extends AbstractChestScreen<DiamondChestMe
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
         graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
-                BG,
+                this.usingGlobalStorage() ? BG : BG_NO_ID,
                 this.leftPos, this.topPos,
                 0, 0,
                 this.imageWidth, this.imageHeight,

@@ -22,7 +22,7 @@ public final class DirtChestMenu extends AbstractChestMenu {
     private static final int SLOT_Y = 18;
 
     public static DirtChestMenu clientConstructor(int syncId, Inventory playerInventory) {
-        return new DirtChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), BlockPos.ZERO, 0, false, null, ChestTier.DIRT.maxChannelId());
+        return new DirtChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), BlockPos.ZERO, 0, false, null, true, ChestTier.DIRT.maxChannelId());
     }
 
     public static DirtChestMenu clientConstructor(int syncId, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
@@ -32,11 +32,12 @@ public final class DirtChestMenu extends AbstractChestMenu {
         boolean locked = buf.readBoolean();
         String owner = buf.readUtf();
         UUID ownerUuid = owner.isEmpty() ? null : UUID.fromString(owner);
-        return new DirtChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), pos, id, locked, ownerUuid, maxChannelId);
+        boolean usingGlobalStorage = buf.readBoolean();
+        return new DirtChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), pos, id, locked, ownerUuid, usingGlobalStorage, maxChannelId);
     }
 
-    public DirtChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, int maxChannelId) {
-        super(ModMenus.DIRT_CHEST_MENU.get(), syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, maxChannelId);
+    public DirtChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, boolean initialUsingGlobalStorage, int maxChannelId) {
+        super(ModMenus.DIRT_CHEST_MENU.get(), syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, initialUsingGlobalStorage, maxChannelId);
 
         this.chestSlotCount = CHEST_SLOTS;
         this.addSlot(new Slot(this.container, 0, SLOT_X, SLOT_Y));

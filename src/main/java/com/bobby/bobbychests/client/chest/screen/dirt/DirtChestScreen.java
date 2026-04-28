@@ -12,6 +12,7 @@ import net.minecraft.world.entity.player.Inventory;
 
 public final class DirtChestScreen extends AbstractChestScreen<DirtChestMenu> {
     private static final Identifier BG = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "textures/gui/bobby_base_chest_1.png");
+    private static final Identifier BG_NO_ID = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "textures/gui/bobby_base_chest_1_no_id.png");
 
     public DirtChestScreen(DirtChestMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -21,7 +22,7 @@ public final class DirtChestScreen extends AbstractChestScreen<DirtChestMenu> {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
         graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
-                BG,
+                this.usingGlobalStorage() ? BG : BG_NO_ID,
                 this.leftPos, this.topPos,
                 0, 0,
                 this.imageWidth, this.imageHeight,

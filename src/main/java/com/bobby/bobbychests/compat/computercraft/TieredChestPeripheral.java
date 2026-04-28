@@ -1,5 +1,6 @@
 package com.bobby.bobbychests.compat.computercraft;
 
+import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.BobbyChests;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
@@ -108,12 +109,27 @@ public final class TieredChestPeripheral implements IPeripheral {
         if (this.isPrivateChest() || !(this.chest.getLevel() instanceof ServerLevel serverLevel)) {
             return null;
         }
+        if (id.isEmpty()) {
+            ResourceHandler<ItemResource> handler = this.handler();
+            return handler == null ? null : countItems(handler);
+        }
+        if (this.chest.getStorageMode() != ChestStorageMode.GLOBAL) {
+            return null;
+        }
 
-        int channelId = id.orElse(this.chest.getGlobalStorageId());
+        int channelId = id.get();
         if (channelId < 0 || channelId > this.chest.getTier().maxChannelId()) {
             return null;
         }
         return GlobalTieredChestData.get(serverLevel).getItemCountForChestId(this.chest, channelId);
+    }
+
+    private static int countItems(ResourceHandler<ItemResource> handler) {
+        int total = 0;
+        for (int slot = 0; slot < handler.size(); slot++) {
+            total += handler.getAmountAsInt(slot);
+        }
+        return total;
     }
 
     @LuaFunction(mainThread = true)

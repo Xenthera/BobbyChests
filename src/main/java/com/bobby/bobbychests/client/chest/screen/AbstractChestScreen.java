@@ -3,6 +3,7 @@ package com.bobby.bobbychests.client.chest.screen;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.network.SetGlobalStorageIdPayload;
 import com.bobby.bobbychests.network.SetLockedPayload;
+import com.bobby.bobbychests.network.SetStorageModePayload;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -22,7 +23,9 @@ import java.util.Optional;
 public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends AbstractContainerScreen<M> {
     private EditBox editBox;
     private Button lockButton;
+    private Button storageModeButton;
     private boolean locked;
+    private boolean usingGlobalStorage;
     private int lastSentId = Integer.MIN_VALUE;
     private int pendingId = Integer.MIN_VALUE;
     private long sendAfterMs = 0L;
@@ -58,6 +61,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         int idBoxH = 10;
 
         this.locked = this.menu.getInitialLocked();
+        this.usingGlobalStorage = this.menu.getInitialUsingGlobalStorage();
         this.maxChannelId = this.menu.getMaxChannelId();
 
         // Keep the same visual text position as bordered=true (x+4, y+(h-8)/2),
@@ -83,6 +87,15 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
             ClientPacketDistributor.sendToServer(new SetLockedPayload(this.menu.getChestPos(), this.locked));
         }).bounds(lockX, lockY, lockSize, lockSize).build();
         this.addRenderableWidget(this.lockButton);
+
+        this.storageModeButton = Button.builder(storageModeLabel(this.usingGlobalStorage), btn -> {
+            this.usingGlobalStorage = !this.usingGlobalStorage;
+            this.updateStorageModeWidgets();
+            this.resetScrollMenuOnStorageKeyChange();
+            ClientPacketDistributor.sendToServer(new SetStorageModePayload(this.menu.getChestPos(), this.usingGlobalStorage));
+        }).bounds(lockX, lockY + lockSize + 4, lockSize, lockSize).build();
+        this.addRenderableWidget(this.storageModeButton);
+        this.updateStorageModeWidgets();
 
         this.repositionChromeWidgets();
     }
@@ -137,7 +150,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     }
 
     private void repositionChromeWidgets() {
-        if (this.editBox == null || this.lockButton == null) {
+        if (this.editBox == null || this.lockButton == null || this.storageModeButton == null) {
             return;
         }
         int idBoxW = 62;
@@ -152,6 +165,8 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         int lockY = this.topPos;
         this.lockButton.setX(lockX);
         this.lockButton.setY(lockY);
+        this.storageModeButton.setX(lockX);
+        this.storageModeButton.setY(lockY + lockSize + 4);
     }
 
     private void clampGuiOnScreen() {
@@ -191,6 +206,24 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
 
     private static Component lockLabel(boolean locked) {
         return Component.literal(locked ? "🔒" : "🔓");
+    }
+
+    private static Component storageModeLabel(boolean usingGlobalStorage) {
+        return Component.literal(usingGlobalStorage ? "G" : "L");
+    }
+
+    protected final boolean usingGlobalStorage() {
+        return this.usingGlobalStorage;
+    }
+
+    private void updateStorageModeWidgets() {
+        if (this.storageModeButton != null) {
+            this.storageModeButton.setMessage(storageModeLabel(this.usingGlobalStorage));
+        }
+        if (this.editBox != null) {
+            this.editBox.visible = this.usingGlobalStorage;
+            this.editBox.active = this.usingGlobalStorage;
+        }
     }
 
     private void onIdEdited(String value) {

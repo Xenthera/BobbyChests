@@ -27,6 +27,7 @@ public final class DiamondChestMenu extends AbstractChestMenu {
                 0,
                 false,
                 null,
+                true,
                 ChestTier.DIAMOND.maxChannelId()
         );
     }
@@ -38,11 +39,12 @@ public final class DiamondChestMenu extends AbstractChestMenu {
         boolean locked = buf.readBoolean();
         String owner = buf.readUtf();
         UUID ownerUuid = owner.isEmpty() ? null : UUID.fromString(owner);
-        return new DiamondChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), pos, id, locked, ownerUuid, maxChannelId);
+        boolean usingGlobalStorage = buf.readBoolean();
+        return new DiamondChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), pos, id, locked, ownerUuid, usingGlobalStorage, maxChannelId);
     }
 
-    public DiamondChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, int maxChannelId) {
-        super(ModMenus.DIAMOND_CHEST_MENU.get(), syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, maxChannelId);
+    public DiamondChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, boolean initialUsingGlobalStorage, int maxChannelId) {
+        super(ModMenus.DIAMOND_CHEST_MENU.get(), syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, initialUsingGlobalStorage, maxChannelId);
 
         // Chest slots (18x6), pushed into the top-left of the texture.
         this.chestSlotCount = CHEST_SLOTS;

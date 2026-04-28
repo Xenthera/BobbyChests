@@ -45,11 +45,12 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
             int initialChestId,
             boolean initialLocked,
             UUID initialOwnerUuid,
+            boolean initialUsingGlobalStorage,
             int maxChannelId,
             int slotsPerRow,
             int chestRowsTotal,
             int chestRowsVisible) {
-        super(type, syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, maxChannelId);
+        super(type, syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, initialUsingGlobalStorage, maxChannelId);
         this.slotsPerRow = slotsPerRow;
         this.chestRowsTotal = chestRowsTotal;
         this.chestRowsVisible = chestRowsVisible;

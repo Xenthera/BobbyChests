@@ -1,7 +1,8 @@
 package com.bobby.bobbychests.chest.blockentity;
 
-import com.bobby.bobbychests.chest.storage.GlobalTieredChestContainer;
+import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
+import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.chest.ChestTier;
@@ -10,9 +11,11 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Container;
+import net.minecraft.world.Containers;
 import net.minecraft.world.LockCode;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -22,6 +25,10 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.transfer.ResourceHandler;
@@ -33,14 +40,17 @@ import java.util.UUID;
 public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity implements TieredGlobalChest {
 
     private static final String TAG_GLOBAL_STORAGE_ID = "bobbychests:global_storage_id";
+    private static final String TAG_STORAGE_MODE = "bobbychests:storage_mode";
     private static final String TAG_LOCKED = "bobbychests:locked";
     private static final String TAG_OWNER_UUID = "bobbychests:owner_uuid";
 
     private final ChestTier tier;
     private int globalStorageId;
+    private ChestStorageMode storageMode = ChestStorageMode.LOCAL;
     private boolean locked;
     private UUID ownerUuid;
-    private final ResourceHandler<ItemResource> itemResourceHandler = new GlobalChestItemResourceHandler(this);
+    private final ResourceHandler<ItemResource> itemResourceHandler = new RoutedChestItemResourceHandler(this);
+    private boolean savingLocalItems;
 
     protected AbstractTieredChestBlockEntity(BlockEntityType<? extends AbstractTieredChestBlockEntity> type, BlockPos worldPosition, BlockState blockState, ChestTier tier) {
         super(type, worldPosition, blockState);
@@ -59,7 +69,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
                 if (c == AbstractTieredChestBlockEntity.this) {
                     return true;
                 }
-                return c instanceof GlobalTieredChestContainer global && global.getChest() == AbstractTieredChestBlockEntity.this;
+                return c instanceof RoutedChestContainer routed && routed.getChest() == AbstractTieredChestBlockEntity.this;
             }
 
             @Override
@@ -78,7 +88,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
             @Override
             protected void onClose(Level level, BlockPos pos, BlockState state) {
-                if (level instanceof ServerLevel serverLevel) {
+                if (AbstractTieredChestBlockEntity.this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
                     GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
                     GlobalTieredChestData.StorageKey key = data.keyForChest(AbstractTieredChestBlockEntity.this);
                     if (data.getPublicOpenViewerCount(key) > 0) {
@@ -99,7 +109,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
             @Override
             protected void openerCountChanged(Level level, BlockPos pos, BlockState state, int oldCount, int newCount) {
-                if (level instanceof ServerLevel serverLevel) {
+                if (AbstractTieredChestBlockEntity.this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
                     GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
                     GlobalTieredChestData.StorageKey key = data.keyForChest(AbstractTieredChestBlockEntity.this);
                     int publicCount = data.getPublicOpenViewerCount(key);
@@ -109,7 +119,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
                     }
                 }
                 AbstractTieredChestBlockEntity.this.signalOpenCount(level, pos, state, oldCount, newCount);
-                if (level instanceof ServerLevel serverLevel && oldCount <= 0 && newCount > 0) {
+                if (AbstractTieredChestBlockEntity.this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel && oldCount <= 0 && newCount > 0) {
                     GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
                     GlobalTieredChestData.StorageKey key = data.keyForChest(AbstractTieredChestBlockEntity.this);
                     // Private (non-public) keys don't use the shared viewer-count mechanism.
@@ -141,6 +151,49 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         return this.globalStorageId;
     }
 
+    public ChestStorageMode getStorageMode() {
+        return this.storageMode;
+    }
+
+    public void setStorageMode(ChestStorageMode nextMode) {
+        if (nextMode == this.storageMode) {
+            return;
+        }
+        if (this.getLevel() instanceof ServerLevel serverLevel) {
+            GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
+            GlobalTieredChestData.StorageKey oldKey = this.getStorageMode() == ChestStorageMode.GLOBAL ? data.keyForChest(this) : null;
+            int openers = this.openersCounter.getOpenerCount();
+
+            this.storageMode = nextMode;
+            this.setChanged();
+            this.requestClientUpdate();
+
+            GlobalTieredChestData.StorageKey newKey = this.getStorageMode() == ChestStorageMode.GLOBAL ? data.keyForChest(this) : null;
+            data.onChestKeyChangedWhileOpen(serverLevel, oldKey, newKey, openers);
+            if (this.getStorageMode() == ChestStorageMode.GLOBAL) {
+                data.registerOrUpdateChest(this);
+            } else {
+                data.unregisterChest(this);
+            }
+            if (this.shouldResetScrollableMenuOnStorageKeyChange()) {
+                AbstractScrollableChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
+            }
+            return;
+        }
+
+        this.storageMode = nextMode;
+        this.setChanged();
+    }
+
+    private void requestClientUpdate() {
+        Level level = this.getLevel();
+        if (level == null || level.isClientSide()) {
+            return;
+        }
+        BlockState state = this.getBlockState();
+        level.sendBlockUpdated(this.getBlockPos(), state, state, 3);
+    }
+
     @Override
     public void setGlobalStorageId(int globalStorageId) {
         int clamped = Math.max(0, Math.min(globalStorageId, this.tier.maxChannelId()));
@@ -148,6 +201,11 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
             return;
         }
         if (this.getLevel() instanceof ServerLevel serverLevel) {
+            if (this.getStorageMode() != ChestStorageMode.GLOBAL) {
+                this.globalStorageId = clamped;
+                this.setChanged();
+                return;
+            }
             GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
             GlobalTieredChestData.StorageKey oldKey = data.keyForChest(this);
             int openers = this.openersCounter.getOpenerCount();
@@ -200,7 +258,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     public void setLocked(boolean locked, Player actor) {
         if (this.getLevel() instanceof ServerLevel serverLevel) {
             GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
-            GlobalTieredChestData.StorageKey oldKey = data.keyForChest(this);
+            GlobalTieredChestData.StorageKey oldKey = this.getStorageMode() == ChestStorageMode.GLOBAL ? data.keyForChest(this) : null;
             int openers = this.openersCounter.getOpenerCount();
 
             this.locked = locked;
@@ -214,9 +272,11 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
                 this.ownerUuid = null;
             }
             this.setChanged();
-            data.registerOrUpdateChest(this);
+            if (this.getStorageMode() == ChestStorageMode.GLOBAL) {
+                data.registerOrUpdateChest(this);
+            }
 
-            GlobalTieredChestData.StorageKey newKey = data.keyForChest(this);
+            GlobalTieredChestData.StorageKey newKey = this.getStorageMode() == ChestStorageMode.GLOBAL ? data.keyForChest(this) : null;
             data.onChestKeyChangedWhileOpen(serverLevel, oldKey, newKey, openers);
             if (this.shouldResetScrollableMenuOnStorageKeyChange()) {
                 AbstractScrollableChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
@@ -238,7 +298,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     @Override
     public void setLevel(Level level) {
         super.setLevel(level);
-        if (level instanceof ServerLevel serverLevel) {
+        if (this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
             GlobalTieredChestData.get(serverLevel).registerOrUpdateChest(this);
         }
     }
@@ -246,14 +306,14 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     @Override
     public void clearRemoved() {
         super.clearRemoved();
-        if (this.getLevel() instanceof ServerLevel serverLevel) {
+        if (this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel serverLevel) {
             GlobalTieredChestData.get(serverLevel).registerOrUpdateChest(this);
         }
     }
 
     @Override
     public void setRemoved() {
-        if (this.getLevel() instanceof ServerLevel serverLevel) {
+        if (this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel serverLevel) {
             GlobalTieredChestData.get(serverLevel).unregisterChest(this);
         }
         super.setRemoved();
@@ -261,8 +321,8 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
     /**
      * When a chest block item is placed, vanilla applies DataComponents.CONTAINER from the item onto the BE
-     * via ItemContainerContents.copyInto(getItems()). Our server .getItems() is the shared global list,
-     * so that would overwrite every chest's storage with the item's (usually empty) container.
+     * via ItemContainerContents.copyInto(getItems()). If the active route is global, that would overwrite
+     * every chest's storage with the item's (usually empty) container.
      *
      * We still apply custom name, lock, and seeded loot-table components so block-item metadata behaves normally.
      */
@@ -284,30 +344,27 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     @Override
     protected NonNullList<ItemStack> getItems() {
         Level level = this.getLevel();
-        if (level instanceof ServerLevel serverLevel) {
+        if (!this.savingLocalItems && this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
             return GlobalTieredChestData.get(serverLevel).getItemsForChest(this);
         }
-        return this.items;
+        return this.localItems();
+    }
+
+    public NonNullList<ItemStack> getActiveItems() {
+        return this.getItems();
     }
 
     @Override
     protected void setItems(NonNullList<ItemStack> stacks) {
-        Level level = this.getLevel();
-        if (level instanceof ServerLevel) {
-            this.ensureLocalItemsSize(stacks.size());
-            this.clearLocalItems();
-            return;
-        }
-        super.setItems(stacks);
+        this.items = this.resizedLocalCopy(stacks);
     }
 
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
-        if (this.getLevel() instanceof ServerLevel) {
-            this.clearLocalItems();
-        }
+        this.ensureLocalItemsSize(this.getSlotCount());
         this.globalStorageId = input.getIntOr(TAG_GLOBAL_STORAGE_ID, 0);
+        this.storageMode = input.getBooleanOr(TAG_STORAGE_MODE, false) ? ChestStorageMode.GLOBAL : ChestStorageMode.LOCAL;
         this.locked = input.getBooleanOr(TAG_LOCKED, false);
         String uuidStr = input.getStringOr(TAG_OWNER_UUID, "");
         this.ownerUuid = uuidStr.isEmpty() ? null : UUID.fromString(uuidStr);
@@ -315,26 +372,63 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
     @Override
     protected void saveAdditional(ValueOutput output) {
-        this.clearLocalItems();
-        super.saveAdditional(output);
+        this.savingLocalItems = true;
+        try {
+            super.saveAdditional(output);
+        } finally {
+            this.savingLocalItems = false;
+        }
 
         output.putInt(TAG_GLOBAL_STORAGE_ID, this.globalStorageId);
+        output.putBoolean(TAG_STORAGE_MODE, this.getStorageMode() == ChestStorageMode.GLOBAL);
         output.putBoolean(TAG_LOCKED, this.locked);
         output.putString(TAG_OWNER_UUID, this.ownerUuid == null ? "" : this.ownerUuid.toString());
     }
 
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = super.getUpdateTag(registries);
+        tag.putBoolean(TAG_STORAGE_MODE, this.getStorageMode() == ChestStorageMode.GLOBAL);
+        return tag;
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    private NonNullList<ItemStack> localItems() {
+        this.ensureLocalItemsSize(this.getSlotCount());
+        return this.items;
+    }
+
+    private NonNullList<ItemStack> resizedLocalCopy(NonNullList<ItemStack> stacks) {
+        int size = this.getSlotCount();
+        NonNullList<ItemStack> copy = NonNullList.withSize(size, ItemStack.EMPTY);
+        int copySize = Math.min(size, stacks.size());
+        for (int i = 0; i < copySize; i++) {
+            copy.set(i, stacks.get(i));
+        }
+        return copy;
+    }
+
     private void ensureLocalItemsSize(int size) {
-        if (this.items == null || this.items.size() != size) {
+        if (this.items == null) {
             this.items = NonNullList.withSize(size, ItemStack.EMPTY);
+        } else if (this.items.size() != size) {
+            this.items = this.resizedLocalCopy(this.items);
         }
     }
 
-    private void clearLocalItems() {
-        if (this.items == null) {
-            return;
-        }
-        for (int i = 0; i < this.items.size(); i++) {
-            this.items.set(i, ItemStack.EMPTY);
+    private void dropLocalItems(Level level, BlockPos pos) {
+        NonNullList<ItemStack> localItems = this.localItems();
+        for (int slot = 0; slot < localItems.size(); slot++) {
+            ItemStack stack = localItems.get(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack.copy());
+            localItems.set(slot, ItemStack.EMPTY);
         }
     }
 
@@ -351,7 +445,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     @Override
     public void setChanged() {
         super.setChanged();
-        if (this.getLevel() instanceof ServerLevel serverLevel) {
+        if (this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel serverLevel) {
             GlobalTieredChestData.get(serverLevel).markChangedAndNotify(this);
         }
     }
@@ -359,33 +453,32 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     @Override
     public ItemStack removeItemNoUpdate(int slot) {
         ItemStack stack = super.removeItemNoUpdate(slot);
-        if (!stack.isEmpty() && this.getLevel() instanceof ServerLevel serverLevel) {
+        if (!stack.isEmpty() && this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel serverLevel) {
             GlobalTieredChestData.get(serverLevel).markChangedAndNotify(this);
         }
         return stack;
     }
 
     /**
-     * Vanilla BaseContainerBlockEntity#clearContent does getItems().clear(). Our .getItems()
-     * returns the shared global list on the server, so clearing would wipe every chest's storage.
+     * Vanilla BaseContainerBlockEntity#clearContent does getItems().clear(). In global mode, that would wipe
+     * every chest on the same storage key.
      */
     @Override
     public void clearContent() {
-        if (this.getLevel() instanceof ServerLevel) {
-            this.clearLocalItems();
+        if (this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel) {
             return;
         }
         super.clearContent();
     }
 
     /**
-     * Before the block entity is removed, vanilla calls Containers.dropContents on any Container BE,
-     * which pulls every stack out for item entities. That would empty the shared global inventory when one chest breaks.
-     * Contents stay in GlobalBobbyBaseChestData; block drops still come from the block loot table.
+     * In global mode, active contents stay in GlobalTieredChestData, but inactive local contents still belong
+     * to this specific block entity and must be dropped before the BE disappears.
      */
     @Override
     public void preRemoveSideEffects(BlockPos pos, BlockState state) {
-        if (this.getLevel() instanceof ServerLevel) {
+        if (this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel) {
+            this.dropLocalItems(this.getLevel(), pos);
             return;
         }
         super.preRemoveSideEffects(pos, state);
