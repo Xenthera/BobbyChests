@@ -61,6 +61,14 @@ public final class TieredChestPeripheral implements IPeripheral {
     }
 
     @LuaFunction(mainThread = true)
+    public final @Nullable Boolean isGlobal() {
+        if (this.isPrivateChest()) {
+            return null;
+        }
+        return this.chest.getStorageMode() == ChestStorageMode.GLOBAL;
+    }
+
+    @LuaFunction(mainThread = true)
     public final @Nullable Integer getChestId() {
         if (this.isPrivateChest()) {
             return null;
