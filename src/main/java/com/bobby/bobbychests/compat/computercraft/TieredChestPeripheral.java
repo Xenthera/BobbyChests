@@ -2,6 +2,7 @@ package com.bobby.bobbychests.compat.computercraft;
 
 import com.bobby.bobbychests.BobbyChests;
 import com.bobby.bobbychests.blockentity.AbstractTieredChestBlockEntity;
+import com.bobby.bobbychests.globalcheststorage.GlobalTieredChestData;
 import dan200.computercraft.api.detail.VanillaDetailRegistries;
 import dan200.computercraft.api.lua.LuaException;
 import dan200.computercraft.api.lua.LuaFunction;
@@ -100,6 +101,19 @@ public final class TieredChestPeripheral implements IPeripheral {
     public final @Nullable Integer size() {
         ResourceHandler<ItemResource> handler = this.handler();
         return handler == null ? null : handler.size();
+    }
+
+    @LuaFunction(mainThread = true)
+    public final @Nullable Integer getItemCount(Optional<Integer> id) {
+        if (this.isPrivateChest() || !(this.chest.getLevel() instanceof ServerLevel serverLevel)) {
+            return null;
+        }
+
+        int channelId = id.orElse(this.chest.getGlobalStorageId());
+        if (channelId < 0 || channelId > this.chest.getTier().maxChannelId()) {
+            return null;
+        }
+        return GlobalTieredChestData.get(serverLevel).getItemCountForChestId(this.chest, channelId);
     }
 
     @LuaFunction(mainThread = true)

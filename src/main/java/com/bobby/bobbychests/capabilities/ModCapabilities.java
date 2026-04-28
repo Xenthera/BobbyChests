@@ -1,5 +1,6 @@
 package com.bobby.bobbychests.capabilities;
 
+import com.bobby.bobbychests.BobbyChests;
 import com.bobby.bobbychests.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.blockentity.ModBlockEntities;
 import com.bobby.bobbychests.compat.computercraft.ComputerCraftCompat;
@@ -55,6 +56,7 @@ public final class ModCapabilities {
                 (AbstractTieredChestBlockEntity chest, @Nullable Direction side) -> chest.getItemResourceHandler(side)
         );
         if (ModList.get().isLoaded("computercraft")) {
+            BobbyChests.LOGGER.info("Hello computercraft 😘");
             ComputerCraftCompat.register(event);
         }
     }

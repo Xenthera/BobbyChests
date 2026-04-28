@@ -173,6 +173,39 @@ public class GlobalTieredChestData extends SavedData {
         return getItemsPublic(chest.getTier(), id, slotCount);
     }
 
+    /**
+     * Count items for a channel without creating a new empty storage entry if that channel has never existed.
+     */
+    public int getItemCountForChestId(AbstractTieredChestBlockEntity chest, int id) {
+        NonNullList<ItemStack> items;
+        if (chest.isLocked() && chest.getOwnerUuid() != null) {
+            Map<ChestTier, Map<Integer, NonNullList<ItemStack>>> byTier = this.privateStorages.get(chest.getOwnerUuid());
+            if (byTier == null) {
+                return 0;
+            }
+            Map<Integer, NonNullList<ItemStack>> byId = byTier.get(chest.getTier());
+            if (byId == null) {
+                return 0;
+            }
+            items = byId.get(id);
+        } else {
+            Map<Integer, NonNullList<ItemStack>> byId = this.publicStorages.get(chest.getTier());
+            if (byId == null) {
+                return 0;
+            }
+            items = byId.get(id);
+        }
+        if (items == null) {
+            return 0;
+        }
+
+        int total = 0;
+        for (ItemStack item : items) {
+            total += item.getCount();
+        }
+        return total;
+    }
+
     public StorageKey keyForChest(AbstractTieredChestBlockEntity chest) {
         UUID owner = (chest.isLocked() ? chest.getOwnerUuid() : null);
         return new StorageKey(chest.getTier(), owner, chest.getGlobalStorageId());
