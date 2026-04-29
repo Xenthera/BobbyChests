@@ -7,12 +7,7 @@
   ],
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
-    {
-      "item": "bobbychests:wooden_chest"
-    },
-    {
-      "item": "minecraft:book"
-    }
+    "#bobbychests:chests"
   ],
   "result": {
     "id": "patchouli:guide_book",

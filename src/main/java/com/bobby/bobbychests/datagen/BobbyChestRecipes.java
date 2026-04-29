@@ -1,10 +1,13 @@
 package com.bobby.bobbychests.datagen;
 
+import com.bobby.bobbychests.registry.ModItems;
+
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.world.item.Items;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -25,6 +28,15 @@ public final class BobbyChestRecipes extends RecipeProvider {
                     .unlockedBy("has_" + chest.id() + "_ingredient", this.has(chest.recipeIngredient()))
                     .save(this.output);
         }
+
+        this.shaped(RecipeCategory.MISC, ModItems.NETWORKING_UPGRADE_CARD.get())
+                .pattern("PPP")
+                .pattern("PCP")
+                .pattern("PPP")
+                .define('C', BobbyChestTags.CHEST_ITEMS)
+                .define('P', Items.PAPER)
+                .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
+                .save(this.output);
     }
 
     public static final class Runner extends RecipeProvider.Runner {

@@ -1,0 +1,17 @@
+{
+  "name": "Networking Upgrade Card",
+  "icon": "bobbychests:networking_upgrade_card",
+  "sortnum": 1,
+  "category": "bobbychests:upgrade_cards",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Networking Upgrade Card enables a Bobby Chest to use global storage.$(br2)Place the card in any upgrade slot to connect that chest to its networked inventory. Removing the card returns the chest to local storage."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Networking Upgrade Card",
+      "recipe": "bobbychests:networking_upgrade_card"
+    }
+  ]
+}

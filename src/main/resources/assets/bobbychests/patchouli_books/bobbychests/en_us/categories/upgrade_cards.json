@@ -1,0 +1,6 @@
+{
+  "name": "Upgrade Cards",
+  "description": "Cards installed in chest upgrade slots to unlock extra Bobby Chest features.",
+  "sortnum": 2,
+  "icon": "bobbychests:networking_upgrade_card"
+}
