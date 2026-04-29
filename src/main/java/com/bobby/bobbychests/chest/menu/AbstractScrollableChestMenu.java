@@ -1,14 +1,15 @@
 package com.bobby.bobbychests.chest.menu;
 
+import com.bobby.bobbychests.network.SetScrollableChestScrollPayload;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.UUID;
 
@@ -26,12 +27,14 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
                 continue;
             }
             if (player.containerMenu instanceof AbstractScrollableChestMenu m && m.getChestPos().equals(chestPos)) {
+                PacketDistributor.sendToPlayer(player, new SetScrollableChestScrollPayload(chestPos, 0));
                 m.onGlobalStorageContextChanged();
             }
         }
     }
 
     private int scrollRows;
+    private boolean pendingFullStateBroadcast;
     private final int slotsPerRow;
     private final int chestRowsTotal;
     private final int chestRowsVisible;
@@ -132,26 +135,19 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
         this.addPlayerInventorySlots(playerInventory, playerLeftX, this.playerInventoryTopY());
     }
 
-    private void clearClientMirrorSlots() {
-        if (!this.level.isClientSide() || !(this.container instanceof SimpleContainer mirror)) {
-            return;
-        }
-        int n = this.logicalStorageSlotCount();
-        for (int i = 0; i < n; i++) {
-            mirror.setItem(i, ItemStack.EMPTY);
-        }
-    }
-
     /**
-     * When storage identity changes, reset scroll to 0 and clear the client mirror. Server resyncs fully so
-     * {@code lastSlots} does not keep stacks from the old channel.
+     * When storage identity changes (channel, lock/global-pool swap, networked storage mode flip), both sides must snap
+     * before slot packets are applied. {@link ScrollWindowSlot#set} writes into the logical mirror using
+     * {@link #scrollRows}; if the client still has the old offset, freshly-synced row-zero stacks are stored into the
+     * wrong slice and disappear once the viewport snaps later.
      */
     public void onGlobalStorageContextChanged() {
-        this.scrollRows = 0;
-        this.clearClientMirrorSlots();
-        if (!this.level.isClientSide()) {
-            this.broadcastFullState();
+        if (this.level.isClientSide()) {
+            this.scrollRows = 0;
+            return;
         }
+        this.scrollRows = 0;
+        this.queueFullStateBroadcast();
     }
 
     /**
@@ -170,6 +166,22 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
             // compares by visible slot ID and can skip equal-looking stacks, leaving the client mirror incomplete.
             this.broadcastFullState();
         }
+    }
+
+    private void queueFullStateBroadcast() {
+        if (!this.level.isClientSide()) {
+            this.pendingFullStateBroadcast = true;
+        }
+    }
+
+    @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+        if (!this.pendingFullStateBroadcast) {
+            return;
+        }
+        this.pendingFullStateBroadcast = false;
+        this.broadcastFullState();
     }
 
     /** @return {@code true} if the scroll position changed */

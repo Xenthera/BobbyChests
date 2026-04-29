@@ -5,6 +5,7 @@ import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -148,6 +149,25 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
 
     public final boolean getInitialUsingGlobalStorage() {
         return this.initialUsingGlobalStorage;
+    }
+
+    /**
+     * Client-only wipe of {@link #container}'s synced mirror when the server's backing chest storage is about to
+     * diverge from what the client remembers (GLOBAL pool vs LOCAL, channel full resync, etc.).
+     * <p>Prevents stale items from the previous backing until full slot packets repaint the mirror — without touching
+     * {@link #upgradeContainer}.</p>
+     */
+    public final void clearChestStorageMirrorBeforeResync() {
+        Level lvl = this.level;
+        if (lvl == null || !lvl.isClientSide()) {
+            return;
+        }
+        if (!(this.container instanceof SimpleContainer mirror)) {
+            return;
+        }
+        for (int i = 0; i < mirror.getContainerSize(); i++) {
+            mirror.setItem(i, ItemStack.EMPTY);
+        }
     }
 
     public final int getChestSlotCount() {

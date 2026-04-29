@@ -1,12 +1,11 @@
 package com.bobby.bobbychests.network;
 
 import com.bobby.bobbychests.chest.blockentity.TieredGlobalChest;
-import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
-import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public final class ModNetworking {
     private ModNetworking() {}
@@ -42,33 +41,38 @@ public final class ModNetworking {
                         chest.setLocked(payload.locked(), ctx.player());
                     });
                 })
-                .playToServer(SetStorageModePayload.TYPE, SetStorageModePayload.STREAM_CODEC, (payload, ctx) -> {
-                    ctx.enqueueWork(() -> {
-                        if (!(ctx.player().level() instanceof ServerLevel level)) {
-                            return;
-                        }
-                        BlockEntity be = level.getBlockEntity(payload.pos());
-                        if (!(be instanceof AbstractTieredChestBlockEntity chest)) {
-                            return;
-                        }
-                        if (!chest.canPlayerOpen(ctx.player())) {
-                            return;
-                        }
+                .playBidirectional(
+                        SetScrollableChestScrollPayload.TYPE,
+                        SetScrollableChestScrollPayload.STREAM_CODEC,
+                        ModNetworking::handleScrollableChestScrollFromClient,
+                        ModNetworking::handleScrollableChestScrollFromServer);
+    }
 
-                        chest.setStorageMode(payload.usingGlobalStorage() ? ChestStorageMode.GLOBAL : ChestStorageMode.LOCAL);
-                    });
-                })
-                .playToServer(SetScrollableChestScrollPayload.TYPE, SetScrollableChestScrollPayload.STREAM_CODEC, (payload, ctx) -> {
-                    ctx.enqueueWork(() -> {
-                        if (!(ctx.player().containerMenu instanceof AbstractScrollableChestMenu menu)) {
-                            return;
-                        }
-                        if (!menu.getChestPos().equals(payload.pos())) {
-                            return;
-                        }
-                        menu.setScrollRows(payload.scrollRows());
-                    });
-                });
+    private static void handleScrollableChestScrollFromClient(SetScrollableChestScrollPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player().containerMenu instanceof AbstractScrollableChestMenu menu)) {
+                return;
+            }
+            if (!menu.getChestPos().equals(payload.pos())) {
+                return;
+            }
+            menu.setScrollRows(payload.scrollRows());
+        });
+    }
+
+    private static void handleScrollableChestScrollFromServer(SetScrollableChestScrollPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player().containerMenu instanceof AbstractScrollableChestMenu menu)) {
+                return;
+            }
+            if (!menu.getChestPos().equals(payload.pos())) {
+                return;
+            }
+            // The following full-state broadcast only repaints visible rows. Clear the whole client mirror first so
+            // off-screen rows from the previous backing store cannot flash when the player scrolls before fresh data.
+            menu.clearChestStorageMirrorBeforeResync();
+            menu.setScrollRows(payload.scrollRows());
+        });
     }
 }
 

@@ -54,6 +54,8 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     private final ChestUpgradeManager upgradeManager = new ChestUpgradeManager(this);
     private boolean savingLocalItems;
 
+    /** Set when upgrades were hydrated from disk while this BE had no level yet; drained in {@link #setLevel}. */
+    private boolean reconcileStorageModeAfterLevel;
     protected AbstractTieredChestBlockEntity(BlockEntityType<? extends AbstractTieredChestBlockEntity> type, BlockPos worldPosition, BlockState blockState, ChestTier tier) {
         super(type, worldPosition, blockState);
         this.tier = tier;
@@ -144,7 +146,38 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
     public abstract int getSlotCount();
 
-    public void onUpgradeInventoryChanged() {}
+    public void onUpgradeInventoryChanged() {
+        if (this.level != null && !this.level.isClientSide()) {
+            this.reconcileStorageModeWithUpgrades();
+        }
+    }
+
+    /**
+     * GLOBAL vs LOCAL tracks pooled storage eligibility: it follows the networking upgrade card if present,
+     * and falls back to LOCAL when no such card occupies any upgrade slot.
+     */
+    private void reconcileStorageModeWithUpgrades() {
+        if (!(this.level instanceof ServerLevel)) {
+            return;
+        }
+        ChestStorageMode target = this.upgradeManager.capabilities().canUseGlobalPooledStorage()
+                ? ChestStorageMode.GLOBAL
+                : ChestStorageMode.LOCAL;
+        if (this.storageMode != target) {
+            this.setStorageMode(target);
+        }
+    }
+
+    private void finishUpgradeDrivenStorageReconcileAfterLoad() {
+        Level lvl = this.getLevel();
+        if (lvl == null) {
+            this.reconcileStorageModeAfterLevel = true;
+            return;
+        }
+        if (lvl instanceof ServerLevel && !lvl.isClientSide()) {
+            this.reconcileStorageModeWithUpgrades();
+        }
+    }
 
     /**
      * When channel / lock / owner changes, whether open {@link AbstractScrollableChestMenu}s for this chest should
@@ -306,6 +339,10 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     @Override
     public void setLevel(Level level) {
         super.setLevel(level);
+        if (!level.isClientSide() && this.reconcileStorageModeAfterLevel && level instanceof ServerLevel) {
+            this.reconcileStorageModeAfterLevel = false;
+            this.reconcileStorageModeWithUpgrades();
+        }
         if (this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
             GlobalTieredChestData.get(serverLevel).registerOrUpdateChest(this);
         }
@@ -371,12 +408,13 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
         this.ensureLocalItemsSize(this.getSlotCount());
+        this.upgradeManager.load(input);
         this.globalStorageId = input.getIntOr(TAG_GLOBAL_STORAGE_ID, 0);
         this.storageMode = input.getBooleanOr(TAG_STORAGE_MODE, false) ? ChestStorageMode.GLOBAL : ChestStorageMode.LOCAL;
         this.locked = input.getBooleanOr(TAG_LOCKED, false);
         String uuidStr = input.getStringOr(TAG_OWNER_UUID, "");
         this.ownerUuid = uuidStr.isEmpty() ? null : UUID.fromString(uuidStr);
-        this.upgradeManager.load(input);
+        this.finishUpgradeDrivenStorageReconcileAfterLoad();
     }
 
     @Override

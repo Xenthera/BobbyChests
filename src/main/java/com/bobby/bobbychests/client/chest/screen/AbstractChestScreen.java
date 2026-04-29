@@ -1,22 +1,25 @@
 package com.bobby.bobbychests.client.chest.screen;
 
+import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
+import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
+import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.network.SetGlobalStorageIdPayload;
 import com.bobby.bobbychests.network.SetLockedPayload;
-import com.bobby.bobbychests.network.SetStorageModePayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import org.joml.Vector2i;
 
@@ -26,7 +29,6 @@ import java.util.Optional;
 public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends AbstractContainerScreen<M> {
     private EditBox editBox;
     private Button lockButton;
-    private Button storageModeButton;
     private boolean locked;
     private boolean usingGlobalStorage;
     private int lastSentId = Integer.MIN_VALUE;
@@ -93,13 +95,6 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         }).bounds(lockX, lockY, lockSize, lockSize).build();
         this.addRenderableWidget(this.lockButton);
 
-        this.storageModeButton = Button.builder(storageModeLabel(this.usingGlobalStorage), btn -> {
-            this.usingGlobalStorage = !this.usingGlobalStorage;
-            this.updateStorageModeWidgets();
-            this.resetScrollMenuOnStorageKeyChange();
-            ClientPacketDistributor.sendToServer(new SetStorageModePayload(this.menu.getChestPos(), this.usingGlobalStorage));
-        }).bounds(lockX, lockY + lockSize + 4, lockSize, lockSize).build();
-        this.addRenderableWidget(this.storageModeButton);
         this.updateStorageModeWidgets();
 
         this.repositionChromeWidgets();
@@ -191,7 +186,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     }
 
     private void repositionChromeWidgets() {
-        if (this.editBox == null || this.lockButton == null || this.storageModeButton == null) {
+        if (this.editBox == null || this.lockButton == null) {
             return;
         }
         int idBoxW = ID_BOX_W;
@@ -206,8 +201,25 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         int lockY = this.topPos;
         this.lockButton.setX(lockX);
         this.lockButton.setY(lockY);
-        this.storageModeButton.setX(lockX);
-        this.storageModeButton.setY(lockY + lockSize + 4);
+    }
+
+    /** Syncs UI from the block entity when pooled storage is enabled/disabled by upgrade cards. */
+    private void syncGlobalStorageModeFromBlockEntity() {
+        if (this.minecraft == null || this.minecraft.level == null) {
+            return;
+        }
+        BlockEntity be = this.minecraft.level.getBlockEntity(this.menu.getChestPos());
+        if (!(be instanceof AbstractTieredChestBlockEntity chest)) {
+            return;
+        }
+        boolean global = chest.getStorageMode() == ChestStorageMode.GLOBAL;
+        if (global != this.usingGlobalStorage) {
+            if (this.menu instanceof AbstractScrollableChestMenu scm) {
+                scm.setScrollRows(0);
+            }
+            this.usingGlobalStorage = global;
+            this.updateStorageModeWidgets();
+        }
     }
 
     private void clampGuiOnScreen() {
@@ -249,18 +261,11 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         return Component.literal(locked ? "🔒" : "🔓");
     }
 
-    private static Component storageModeLabel(boolean usingGlobalStorage) {
-        return Component.literal(usingGlobalStorage ? "G" : "L");
-    }
-
     protected final boolean usingGlobalStorage() {
         return this.usingGlobalStorage;
     }
 
     private void updateStorageModeWidgets() {
-        if (this.storageModeButton != null) {
-            this.storageModeButton.setMessage(storageModeLabel(this.usingGlobalStorage));
-        }
         if (this.editBox != null) {
             this.editBox.visible = this.usingGlobalStorage;
             this.editBox.active = this.usingGlobalStorage;
@@ -312,14 +317,15 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     }
 
     /**
-     * Scrollable chest screens override this to reset row scroll when the player edits channel id or toggles lock
-     * before packets apply.
+     * Subclasses tweak scroll position when identity keys change mid-interaction — see
+     * {@link AbstractScrollableChestScreen#resetScrollMenuOnStorageKeyChange()}.
      */
     protected void resetScrollMenuOnStorageKeyChange() {}
 
     @Override
     protected void containerTick() {
         super.containerTick();
+        this.syncGlobalStorageModeFromBlockEntity();
         if (this.pendingId == Integer.MIN_VALUE) {
             return;
         }

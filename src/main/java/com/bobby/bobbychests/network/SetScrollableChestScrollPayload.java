@@ -7,7 +7,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
-/** Client sends the first visible row after updating the menu locally. */
+/** Synchronizes the first visible row between a scrollable chest menu's client and server copies. */
 public record SetScrollableChestScrollPayload(BlockPos pos, int scrollRows) implements CustomPacketPayload {
     public static final Type<SetScrollableChestScrollPayload> TYPE =
             new Type<>(Identifier.fromNamespaceAndPath("bobbychests", "set_scrollable_chest_scroll"));

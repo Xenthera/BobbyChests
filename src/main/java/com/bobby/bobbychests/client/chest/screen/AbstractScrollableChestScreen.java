@@ -53,9 +53,13 @@ public abstract class AbstractScrollableChestScreen<M extends AbstractScrollable
         super.containerTick();
     }
 
+    /**
+     * Snap immediately so future {@link ScrollWindowSlot#set} calls write incoming server slot data to the same logical
+     * slice the server is broadcasting.
+     */
     @Override
     protected void resetScrollMenuOnStorageKeyChange() {
-        this.menu.onGlobalStorageContextChanged();
+        this.menu.setScrollRows(0);
     }
 
     private void tickScrollFromSyncedBlockEntity() {
