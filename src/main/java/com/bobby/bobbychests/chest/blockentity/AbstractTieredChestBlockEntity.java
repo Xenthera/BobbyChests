@@ -5,6 +5,7 @@ import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
 import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
+import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.chest.ChestTier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -50,6 +51,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     private boolean locked;
     private UUID ownerUuid;
     private final ResourceHandler<ItemResource> itemResourceHandler = new RoutedChestItemResourceHandler(this);
+    private final ChestUpgradeManager upgradeManager = new ChestUpgradeManager(this);
     private boolean savingLocalItems;
 
     protected AbstractTieredChestBlockEntity(BlockEntityType<? extends AbstractTieredChestBlockEntity> type, BlockPos worldPosition, BlockState blockState, ChestTier tier) {
@@ -136,7 +138,13 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         return this.tier;
     }
 
+    public ChestUpgradeManager getUpgradeManager() {
+        return this.upgradeManager;
+    }
+
     public abstract int getSlotCount();
+
+    public void onUpgradeInventoryChanged() {}
 
     /**
      * When channel / lock / owner changes, whether open {@link AbstractScrollableChestMenu}s for this chest should
@@ -368,6 +376,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         this.locked = input.getBooleanOr(TAG_LOCKED, false);
         String uuidStr = input.getStringOr(TAG_OWNER_UUID, "");
         this.ownerUuid = uuidStr.isEmpty() ? null : UUID.fromString(uuidStr);
+        this.upgradeManager.load(input);
     }
 
     @Override
@@ -383,6 +392,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         output.putBoolean(TAG_STORAGE_MODE, this.getStorageMode() == ChestStorageMode.GLOBAL);
         output.putBoolean(TAG_LOCKED, this.locked);
         output.putString(TAG_OWNER_UUID, this.ownerUuid == null ? "" : this.ownerUuid.toString());
+        this.upgradeManager.save(output);
     }
 
     @Override
@@ -477,6 +487,10 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
      */
     @Override
     public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        Level level = this.getLevel();
+        if (level != null && !level.isClientSide()) {
+            this.upgradeManager.dropContents(level, pos);
+        }
         if (this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel) {
             this.dropLocalItems(this.getLevel(), pos);
             return;

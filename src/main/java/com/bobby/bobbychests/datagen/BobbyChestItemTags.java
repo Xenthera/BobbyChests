@@ -15,6 +15,7 @@ public final class BobbyChestItemTags extends ItemTagsProvider {
     @Override
     protected void addTags(HolderLookup.Provider provider) {
         var chestItems = tag(BobbyChestTags.CHEST_ITEMS);
+        tag(BobbyChestTags.UPGRADE_CARDS);
 
         for (BobbyChestData.ChestDefinition chest : BobbyChestData.CHESTS) {
             chestItems.add(chest.item());

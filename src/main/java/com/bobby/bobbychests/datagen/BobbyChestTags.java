@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.Block;
 public final class BobbyChestTags {
     public static final TagKey<Block> CHEST_BLOCKS = BlockTags.create(Identifier.fromNamespaceAndPath(BobbyChests.MODID, "chests"));
     public static final TagKey<Item> CHEST_ITEMS = ItemTags.create(Identifier.fromNamespaceAndPath(BobbyChests.MODID, "chests"));
+    public static final TagKey<Item> UPGRADE_CARDS = ItemTags.create(Identifier.fromNamespaceAndPath(BobbyChests.MODID, "upgrade_cards"));
 
     private BobbyChestTags() {}
 }
