@@ -32,6 +32,19 @@ public final class BobbyChestAssetProvider implements DataProvider {
             futures.add(DataProvider.saveStable(output, itemModel(), this.modelPathProvider.json(Identifier.fromNamespaceAndPath(BobbyChests.MODID, "item/" + chest.id()))));
             futures.add(DataProvider.saveStable(output, itemDefinition(chest), this.itemDefinitionPathProvider.json(id)));
         }
+
+        // Upgrade card item models (keep in datagen; no hand-authored resources).
+        Identifier networkingUpgradeCard = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "networking_upgrade_card");
+        futures.add(DataProvider.saveStable(
+                output,
+                generatedItemModel(BobbyChests.MODID + ":item/networking_upgrade_card"),
+                this.modelPathProvider.json(Identifier.fromNamespaceAndPath(BobbyChests.MODID, "item/networking_upgrade_card"))
+        ));
+        futures.add(DataProvider.saveStable(
+                output,
+                modelItemDefinition(Identifier.fromNamespaceAndPath(BobbyChests.MODID, "item/networking_upgrade_card")),
+                this.itemDefinitionPathProvider.json(networkingUpgradeCard)
+        ));
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
     }
 
@@ -67,6 +80,24 @@ public final class BobbyChestAssetProvider implements DataProvider {
     private static JsonObject itemModel() {
         JsonObject root = new JsonObject();
         root.addProperty("parent", "minecraft:item/chest");
+        return root;
+    }
+
+    private static JsonObject generatedItemModel(String layer0) {
+        JsonObject root = new JsonObject();
+        JsonObject textures = new JsonObject();
+        root.addProperty("parent", "minecraft:item/generated");
+        textures.addProperty("layer0", layer0);
+        root.add("textures", textures);
+        return root;
+    }
+
+    private static JsonObject modelItemDefinition(Identifier model) {
+        JsonObject root = new JsonObject();
+        JsonObject modelWrapper = new JsonObject();
+        root.add("model", modelWrapper);
+        modelWrapper.addProperty("type", "minecraft:model");
+        modelWrapper.addProperty("model", model.toString());
         return root;
     }
 

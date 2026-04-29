@@ -18,5 +18,6 @@
   "container.bobbychests.iron_chest": "Iron Chest",
   "container.bobbychests.netherite_chest": "Netherite Chest",
   "container.bobbychests.wooden_chest": "Wooden Chest",
+  "item.bobbychests.networking_upgrade_card": "Networking Upgrade Card",
   "itemGroup.bobbychests": "Bobby Chests"
 }

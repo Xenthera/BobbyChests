@@ -2,9 +2,11 @@ package com.bobby.bobbychests.chest.upgrade;
 
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.datagen.BobbyChestTags;
+import com.bobby.bobbychests.item.ChestUpgradeCardItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.Containers;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -44,7 +46,10 @@ public final class ChestUpgradeManager {
     }
 
     public static boolean isUpgradeCard(ItemStack stack) {
-        return !stack.isEmpty() && stack.is(BobbyChestTags.UPGRADE_CARDS);
+        if (stack.isEmpty()) {
+            return false;
+        }
+        return stack.getItem() instanceof ChestUpgradeCardItem || stack.is(BobbyChestTags.UPGRADE_CARDS);
     }
 
     public void onContentsChanged() {
@@ -65,7 +70,7 @@ public final class ChestUpgradeManager {
     public void dropContents(Level level, BlockPos pos) {
         for (ItemStack stack : this.stacks) {
             if (!stack.isEmpty()) {
-                net.minecraft.world.Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack.copy());
+                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack.copy());
             }
         }
         for (int i = 0; i < this.stacks.size(); i++) {

@@ -1,16 +1,14 @@
 package com.bobby.bobbychests;
 
-import com.bobby.bobbychests.registry.ModBlocks;
-import com.bobby.bobbychests.registry.ModBlockEntities;
-import com.bobby.bobbychests.registry.ModCapabilities;
+import com.bobby.bobbychests.chest.menu.TieredChestLogoutHandler;
 import com.bobby.bobbychests.command.ModCommands;
 import com.bobby.bobbychests.datagen.DataGenerators;
-import com.bobby.bobbychests.registry.ModItems;
-import com.bobby.bobbychests.chest.menu.TieredChestLogoutHandler;
-import com.bobby.bobbychests.registry.ModMenus;
 import com.bobby.bobbychests.network.ModNetworking;
-import org.slf4j.Logger;
-
+import com.bobby.bobbychests.registry.ModBlockEntities;
+import com.bobby.bobbychests.registry.ModBlocks;
+import com.bobby.bobbychests.registry.ModCapabilities;
+import com.bobby.bobbychests.registry.ModItems;
+import com.bobby.bobbychests.registry.ModMenus;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.registries.Registries;
@@ -25,6 +23,8 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
+
+import org.slf4j.Logger;
 
 @Mod(BobbyChests.MODID)
 public class BobbyChests {
@@ -47,6 +47,7 @@ public class BobbyChests {
                 output.accept(ModBlocks.DIAMOND_CHEST.get());
                 output.accept(ModBlocks.EMERALD_CHEST.get());
                 output.accept(ModBlocks.NETHERITE_CHEST.get());
+                output.accept(ModItems.NETWORKING_UPGRADE_CARD.get());
             }).build());
 
     public BobbyChests(IEventBus modEventBus, ModContainer modContainer) {

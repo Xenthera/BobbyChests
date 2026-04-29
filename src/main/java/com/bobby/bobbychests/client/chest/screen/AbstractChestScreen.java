@@ -4,12 +4,15 @@ import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.network.SetGlobalStorageIdPayload;
 import com.bobby.bobbychests.network.SetLockedPayload;
 import com.bobby.bobbychests.network.SetStorageModePayload;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Inventory;
@@ -34,6 +37,8 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     private boolean applyingClampedText = false;
     private long clampPopupUntilMs = 0L;
     private static final long CLAMP_POPUP_MS = 1200L;
+    private static final int ID_BOX_W = 62;
+    private static final int ID_BOX_RIGHT_PAD = 15;
 
     protected AbstractChestScreen(M menu, Inventory inv, Component title) {
         super(menu, inv, title, menu.getImageWidthPx(), menu.getImageHeightPx());
@@ -43,7 +48,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
 
 
     protected int idBoxX() {
-        return (this.width / 2) + 11;
+        return this.leftPos + this.menu.getChestPanelWidthPx() - ID_BOX_W - ID_BOX_RIGHT_PAD;
     }
 
 
@@ -57,7 +62,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         this.clampGuiOnScreen();
         int idBoxX = this.idBoxX();
         int idBoxY = this.idBoxY();
-        int idBoxW = 62;
+        int idBoxW = ID_BOX_W;
         int idBoxH = 10;
 
         this.locked = this.menu.getInitialLocked();
@@ -98,6 +103,42 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         this.updateStorageModeWidgets();
 
         this.repositionChromeWidgets();
+    }
+
+    protected void renderUpgradeSlotPlaceholders(GuiGraphicsExtractor graphics) {
+        int borderArgb = 0xFF8E8E8E;
+        int innerArgb = 0x55303030;
+        int outer = 18;
+        int border = 1;
+        int x = this.leftPos + this.menu.getUpgradeSlotBaseX();
+        for (int i = 0; i < this.menu.getUpgradeSlotCount(); i++) {
+            int y = this.topPos + this.menu.getUpgradeSlotY(i);
+            int bx0 = x - border;
+            int by0 = y - border;
+            int bx1 = bx0 + outer;
+            int by1 = by0 + outer;
+            graphics.fill(RenderPipelines.GUI, x, y, x + (outer - 2 * border), y + (outer - 2 * border), innerArgb);
+            graphics.fill(RenderPipelines.GUI, bx0, by0, bx1, by0 + border, borderArgb);
+            graphics.fill(RenderPipelines.GUI, bx0, by1 - border, bx1, by1, borderArgb);
+            graphics.fill(RenderPipelines.GUI, bx0, by0 + border, bx0 + border, by1 - border, borderArgb);
+            graphics.fill(RenderPipelines.GUI, bx1 - border, by0 + border, bx1, by1 - border, borderArgb);
+        }
+    }
+
+    protected final void extractTieredChestGuiBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick, Identifier textureGlobal, Identifier textureLocal, int textureAtlasSize) {
+        super.extractBackground(graphics, mouseX, mouseY, partialTick);
+        graphics.blit(
+                RenderPipelines.GUI_TEXTURED,
+                this.usingGlobalStorage() ? textureGlobal : textureLocal,
+                this.leftPos,
+                this.topPos,
+                0,
+                0,
+                this.menu.getChestPanelWidthPx(),
+                this.imageHeight,
+                textureAtlasSize,
+                textureAtlasSize);
+        this.renderUpgradeSlotPlaceholders(graphics);
     }
 
     @Override
@@ -153,7 +194,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         if (this.editBox == null || this.lockButton == null || this.storageModeButton == null) {
             return;
         }
-        int idBoxW = 62;
+        int idBoxW = ID_BOX_W;
         int idBoxH = 10;
         int idBoxX = this.idBoxX();
         int idBoxY = this.idBoxY();

@@ -1,8 +1,10 @@
 package com.bobby.bobbychests.chest.menu.emerald;
 
+import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.registry.ModMenus;
 import com.bobby.bobbychests.chest.ChestTier;
+import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.Container;
@@ -22,32 +24,37 @@ public final class EmeraldChestMenu extends AbstractScrollableChestMenu {
                 syncId,
                 playerInventory,
                 new SimpleContainer(STORAGE_SLOTS),
+                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
                 BlockPos.ZERO,
                 0,
                 false,
                 null,
                 true,
-                ChestTier.EMERALD.maxChannelId()
-        );
+                ChestTier.EMERALD.maxChannelId());
     }
 
     public static EmeraldChestMenu clientConstructor(int syncId, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
-        BlockPos pos = buf.readBlockPos();
-        int maxChannelId = buf.readVarInt();
-        int id = buf.readVarInt();
-        boolean locked = buf.readBoolean();
-        String owner = buf.readUtf();
-        UUID ownerUuid = owner.isEmpty() ? null : UUID.fromString(owner);
-        boolean usingGlobalStorage = buf.readBoolean();
-        return new EmeraldChestMenu(syncId, playerInventory, new SimpleContainer(STORAGE_SLOTS), pos, id, locked, ownerUuid, usingGlobalStorage, maxChannelId);
+        var p = AbstractChestMenu.TieredChestClientPayload.read(buf);
+        return new EmeraldChestMenu(
+                syncId,
+                playerInventory,
+                new SimpleContainer(STORAGE_SLOTS),
+                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
+                p.chestPos(),
+                p.initialChestId(),
+                p.initialLocked(),
+                p.initialOwnerUuid(),
+                p.initialUsingGlobalStorage(),
+                p.maxChannelId());
     }
 
-    public EmeraldChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, boolean initialUsingGlobalStorage, int maxChannelId) {
+    public EmeraldChestMenu(int syncID, Inventory playerInventory, Container container, Container upgradeContainer, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, boolean initialUsingGlobalStorage, int maxChannelId) {
         super(
                 ModMenus.EMERALD_CHEST_MENU.get(),
                 syncID,
                 playerInventory,
                 container,
+                upgradeContainer,
                 chestPos,
                 initialChestId,
                 initialLocked,
@@ -56,18 +63,17 @@ public final class EmeraldChestMenu extends AbstractScrollableChestMenu {
                 maxChannelId,
                 SLOTS_PER_ROW,
                 TOTAL_CHEST_ROWS,
-                CHEST_ROWS_VISIBLE
-        );
+                CHEST_ROWS_VISIBLE);
         this.addScrollableChestSlots(playerInventory);
     }
 
     @Override
     public int getImageWidthPx() {
-        return 14 + (SLOTS_PER_ROW * 18);
+        return AbstractChestMenu.imageWidthChestGridPlusUpgradeStrip(SLOTS_PER_ROW);
     }
 
     @Override
     public int getImageHeightPx() {
-        return 114 + (CHEST_ROWS_VISIBLE * 18);
+        return AbstractChestMenu.imageHeightForChestRows(CHEST_ROWS_VISIBLE);
     }
 }

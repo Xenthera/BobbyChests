@@ -1,8 +1,9 @@
 package com.bobby.bobbychests.chest.menu;
 
-import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
+import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
+import com.bobby.bobbychests.chest.upgrade.ChestUpgradeContainer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -30,6 +31,15 @@ public abstract class AbstractTieredChestMenuProvider implements MenuProvider, I
         this.chest = chest;
     }
 
+    protected final ChestUpgradeContainer upgrades() {
+        return new ChestUpgradeContainer(this.chest);
+    }
+
+    /** Whether this block entity's storage mode is {@link ChestStorageMode#GLOBAL}. */
+    protected final boolean usesGlobalStorage() {
+        return this.chest.getStorageMode() == ChestStorageMode.GLOBAL;
+    }
+
     @Override
     public final Component getDisplayName() {
         return this.title;
@@ -42,7 +52,7 @@ public abstract class AbstractTieredChestMenuProvider implements MenuProvider, I
         buf.writeVarInt(this.chest.getGlobalStorageId());
         buf.writeBoolean(this.chest.isLocked());
         buf.writeUtf(this.chest.getOwnerUuid() == null ? "" : this.chest.getOwnerUuid().toString());
-        buf.writeBoolean(this.chest.getStorageMode() == ChestStorageMode.GLOBAL);
+        buf.writeBoolean(this.usesGlobalStorage());
     }
 
     @Override

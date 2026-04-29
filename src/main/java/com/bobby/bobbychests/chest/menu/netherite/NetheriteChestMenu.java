@@ -1,8 +1,10 @@
 package com.bobby.bobbychests.chest.menu.netherite;
 
+import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.registry.ModMenus;
 import com.bobby.bobbychests.chest.ChestTier;
+import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.Container;
@@ -13,7 +15,6 @@ import java.util.UUID;
 
 public final class NetheriteChestMenu extends AbstractScrollableChestMenu {
     private static final int SLOTS_PER_ROW = 18;
-    /** Logical grid height in rows (18×18 = 324 storage slots). */
     public static final int TOTAL_CHEST_ROWS = 18;
     private static final int CHEST_ROWS_VISIBLE = 6;
     private static final int STORAGE_SLOTS = SLOTS_PER_ROW * TOTAL_CHEST_ROWS;
@@ -23,32 +24,37 @@ public final class NetheriteChestMenu extends AbstractScrollableChestMenu {
                 syncId,
                 playerInventory,
                 new SimpleContainer(STORAGE_SLOTS),
+                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
                 BlockPos.ZERO,
                 0,
                 false,
                 null,
                 true,
-                ChestTier.NETHERITE.maxChannelId()
-        );
+                ChestTier.NETHERITE.maxChannelId());
     }
 
     public static NetheriteChestMenu clientConstructor(int syncId, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
-        BlockPos pos = buf.readBlockPos();
-        int maxChannelId = buf.readVarInt();
-        int id = buf.readVarInt();
-        boolean locked = buf.readBoolean();
-        String owner = buf.readUtf();
-        UUID ownerUuid = owner.isEmpty() ? null : UUID.fromString(owner);
-        boolean usingGlobalStorage = buf.readBoolean();
-        return new NetheriteChestMenu(syncId, playerInventory, new SimpleContainer(STORAGE_SLOTS), pos, id, locked, ownerUuid, usingGlobalStorage, maxChannelId);
+        var p = AbstractChestMenu.TieredChestClientPayload.read(buf);
+        return new NetheriteChestMenu(
+                syncId,
+                playerInventory,
+                new SimpleContainer(STORAGE_SLOTS),
+                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
+                p.chestPos(),
+                p.initialChestId(),
+                p.initialLocked(),
+                p.initialOwnerUuid(),
+                p.initialUsingGlobalStorage(),
+                p.maxChannelId());
     }
 
-    public NetheriteChestMenu(int syncID, Inventory playerInventory, Container container, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, boolean initialUsingGlobalStorage, int maxChannelId) {
+    public NetheriteChestMenu(int syncID, Inventory playerInventory, Container container, Container upgradeContainer, BlockPos chestPos, int initialChestId, boolean initialLocked, UUID initialOwnerUuid, boolean initialUsingGlobalStorage, int maxChannelId) {
         super(
                 ModMenus.NETHERITE_CHEST_MENU.get(),
                 syncID,
                 playerInventory,
                 container,
+                upgradeContainer,
                 chestPos,
                 initialChestId,
                 initialLocked,
@@ -57,18 +63,17 @@ public final class NetheriteChestMenu extends AbstractScrollableChestMenu {
                 maxChannelId,
                 SLOTS_PER_ROW,
                 TOTAL_CHEST_ROWS,
-                CHEST_ROWS_VISIBLE
-        );
+                CHEST_ROWS_VISIBLE);
         this.addScrollableChestSlots(playerInventory);
     }
 
     @Override
     public int getImageWidthPx() {
-        return 14 + (SLOTS_PER_ROW * 18);
+        return AbstractChestMenu.imageWidthChestGridPlusUpgradeStrip(SLOTS_PER_ROW);
     }
 
     @Override
     public int getImageHeightPx() {
-        return 114 + (CHEST_ROWS_VISIBLE * 18);
+        return AbstractChestMenu.imageHeightForChestRows(CHEST_ROWS_VISIBLE);
     }
 }

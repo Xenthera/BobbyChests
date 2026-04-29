@@ -1,7 +1,5 @@
 package com.bobby.bobbychests.chest.menu.dirt;
 
-import com.bobby.bobbychests.chest.storage.ChestStorageMode;
-import com.bobby.bobbychests.registry.ModMenus;
 import com.bobby.bobbychests.chest.menu.AbstractTieredChestMenuProvider;
 
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
@@ -23,11 +21,12 @@ public final class DirtChestMenuProvider extends AbstractTieredChestMenuProvider
                 syncID,
                 playerInv,
                 this.container,
+                this.upgrades(),
                 this.pos,
                 this.chest.getGlobalStorageId(),
                 this.chest.isLocked(),
                 this.chest.getOwnerUuid(),
-                this.chest.getStorageMode() == ChestStorageMode.GLOBAL,
+                this.usesGlobalStorage(),
                 this.chest.getTier().maxChannelId()
         );
     }

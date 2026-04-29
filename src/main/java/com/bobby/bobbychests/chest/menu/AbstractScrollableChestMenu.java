@@ -41,6 +41,7 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
             int syncID,
             Inventory playerInventory,
             Container container,
+            Container upgradeContainer,
             BlockPos chestPos,
             int initialChestId,
             boolean initialLocked,
@@ -50,7 +51,7 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
             int slotsPerRow,
             int chestRowsTotal,
             int chestRowsVisible) {
-        super(type, syncID, playerInventory, container, chestPos, initialChestId, initialLocked, initialOwnerUuid, initialUsingGlobalStorage, maxChannelId);
+        super(type, syncID, playerInventory, container, upgradeContainer, chestPos, initialChestId, initialLocked, initialOwnerUuid, initialUsingGlobalStorage, maxChannelId);
         this.slotsPerRow = slotsPerRow;
         this.chestRowsTotal = chestRowsTotal;
         this.chestRowsVisible = chestRowsVisible;
@@ -124,6 +125,8 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
                 this.addSlot(new ScrollWindowSlot(this, this.container, row, col, x, y));
             }
         }
+
+        this.addUpgradeSlots();
 
         int playerLeftX = this.chestSlotGridLeft() + ((this.slotsPerRow() - 9) * step) / 2;
         this.addPlayerInventorySlots(playerInventory, playerLeftX, this.playerInventoryTopY());

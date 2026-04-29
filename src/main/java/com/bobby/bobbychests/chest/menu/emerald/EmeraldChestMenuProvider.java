@@ -1,10 +1,7 @@
 package com.bobby.bobbychests.chest.menu.emerald;
 
-import com.bobby.bobbychests.chest.storage.ChestStorageMode;
-import com.bobby.bobbychests.registry.ModMenus;
-import com.bobby.bobbychests.chest.menu.AbstractTieredChestMenuProvider;
-
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
+import com.bobby.bobbychests.chest.menu.AbstractTieredChestMenuProvider;
 import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -23,11 +20,12 @@ public final class EmeraldChestMenuProvider extends AbstractTieredChestMenuProvi
                 syncID,
                 playerInv,
                 this.container,
+                this.upgrades(),
                 this.pos,
                 this.chest.getGlobalStorageId(),
                 this.chest.isLocked(),
                 this.chest.getOwnerUuid(),
-                this.chest.getStorageMode() == ChestStorageMode.GLOBAL,
+                this.usesGlobalStorage(),
                 this.chest.getTier().maxChannelId()
         );
     }

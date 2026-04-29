@@ -21,7 +21,6 @@ import java.util.UUID;
  */
 public abstract class AbstractScrollableChestScreen<M extends AbstractScrollableChestMenu> extends AbstractChestScreen<M> {
     private static final int SYNCED_CHANNEL_UNSET = Integer.MIN_VALUE;
-    private static final int ID_BOX_W = 62;
     private static final int SCROLLBAR_TRACK_WIDTH = 10;
     private static final int SCROLLBAR_HANDLE_TEX_WIDTH = 5;
     private static final int SCROLLBAR_GAP_AFTER_GRID = 2;
@@ -46,17 +45,6 @@ public abstract class AbstractScrollableChestScreen<M extends AbstractScrollable
     protected AbstractScrollableChestScreen(M menu, Inventory inv, Component title, ScrollableChestGuiAssets guiAssets) {
         super(menu, inv, title);
         this.guiAssets = guiAssets;
-    }
-
-    @Override
-    protected int idBoxX() {
-        int rightPad = 15;
-        return this.leftPos + this.imageWidth - ID_BOX_W - rightPad;
-    }
-
-    @Override
-    protected int idBoxY() {
-        return this.topPos + 5;
     }
 
     @Override
@@ -274,9 +262,10 @@ public abstract class AbstractScrollableChestScreen<M extends AbstractScrollable
                 bg,
                 this.leftPos, this.topPos,
                 0, 0,
-                this.imageWidth, this.imageHeight,
+                this.menu.getChestPanelWidthPx(), this.imageHeight,
                 BACKGROUND_TEXTURE_SIZE, BACKGROUND_TEXTURE_SIZE
         );
+        this.renderUpgradeSlotPlaceholders(graphics);
         int trackLeft = this.scrollbarTrackLeft();
         int trackTop = this.scrollbarTrackTop();
         int trackH = this.scrollbarTrackHeightPx();
