@@ -1,5 +1,6 @@
 package com.bobby.bobbychests.chest.menu;
 
+import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.network.SetScrollableChestScrollPayload;
 
 import net.minecraft.core.BlockPos;
@@ -8,7 +9,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.UUID;
@@ -182,6 +186,83 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
         }
         this.pendingFullStateBroadcast = false;
         this.broadcastFullState();
+    }
+
+    @Override
+    public ItemStack quickMoveStack(Player player, int index) {
+        ItemStack previous = ItemStack.EMPTY;
+        Slot slot = this.slots.get(index);
+        if (slot == null || !slot.hasItem()) {
+            return previous;
+        }
+
+        ItemStack stack = slot.getItem();
+        previous = stack.copy();
+        if (index < this.chestSlotCount) {
+            if (!this.moveItemStackTo(stack, this.getFirstPlayerSlotIndex(), this.slots.size(), true)) {
+                return ItemStack.EMPTY;
+            }
+        } else if (index < this.getFirstPlayerSlotIndex()) {
+            if (!this.moveItemStackTo(stack, this.getFirstPlayerSlotIndex(), this.slots.size(), true)) {
+                return ItemStack.EMPTY;
+            }
+        } else {
+            if (ChestUpgradeManager.isUpgradeCard(stack)) {
+                if (!this.moveItemStackTo(stack, this.getFirstUpgradeSlotIndex(), this.getFirstPlayerSlotIndex(), false)
+                        && !this.moveItemStackToLogicalChest(stack)) {
+                    return ItemStack.EMPTY;
+                }
+            } else if (!this.moveItemStackToLogicalChest(stack)) {
+                return ItemStack.EMPTY;
+            }
+        }
+
+        if (stack.isEmpty()) {
+            slot.setByPlayer(ItemStack.EMPTY);
+        } else {
+            slot.setChanged();
+        }
+        return previous;
+    }
+
+    private boolean moveItemStackToLogicalChest(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        boolean changed = false;
+        int size = Math.min(this.logicalStorageSlotCount(), this.container.getContainerSize());
+
+        if (stack.isStackable()) {
+            for (int slot = 0; slot < size && !stack.isEmpty(); slot++) {
+                ItemStack existing = this.container.getItem(slot);
+                if (existing.isEmpty() || !ItemStack.isSameItemSameComponents(existing, stack)) {
+                    continue;
+                }
+                int max = Math.min(existing.getMaxStackSize(), this.container.getMaxStackSize());
+                int room = max - existing.getCount();
+                if (room <= 0) {
+                    continue;
+                }
+                int move = Math.min(room, stack.getCount());
+                existing.grow(move);
+                stack.shrink(move);
+                this.container.setChanged();
+                changed = true;
+            }
+        }
+
+        for (int slot = 0; slot < size && !stack.isEmpty(); slot++) {
+            if (!this.container.getItem(slot).isEmpty() || !this.container.canPlaceItem(slot, stack)) {
+                continue;
+            }
+            int move = Math.min(stack.getCount(), Math.min(stack.getMaxStackSize(), this.container.getMaxStackSize()));
+            this.container.setItem(slot, stack.copyWithCount(move));
+            stack.shrink(move);
+            changed = true;
+        }
+
+        return changed;
     }
 
     /** @return {@code true} if the scroll position changed */
