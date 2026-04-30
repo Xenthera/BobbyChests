@@ -6,11 +6,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "An early game upgrade, but still smaller than a standard Minecraft chest.$(br2)You're going to want to find some iron before too long!"
+      "text": "The Copper Chest is an early material upgrade.$(br2)It sits above the basic tiers and gives storage setups room to grow before moving into stronger metals."
     },
     {
       "type": "patchouli:crafting",
-      "title": "",
+      "title": "Copper Chest",
       "recipe": "bobbychests:copper_chest"
     }
   ]

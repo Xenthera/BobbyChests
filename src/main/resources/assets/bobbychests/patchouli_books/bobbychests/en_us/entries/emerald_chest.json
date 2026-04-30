@@ -6,11 +6,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Emerald Chest is like the diamond chest, but bigger.$(br2)Doesn't look it?$(br2)Try scrolling..."
+      "text": "The Emerald Chest introduces large scrollable storage.$(br2)Only part of its inventory is visible at once; use the scrollbar or mouse wheel to move through additional rows."
     },
     {
       "type": "patchouli:crafting",
-      "title": "",
+      "title": "Emerald Chest",
       "recipe": "bobbychests:emerald_chest"
     }
   ]

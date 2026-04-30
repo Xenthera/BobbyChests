@@ -6,11 +6,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Diamond Chest is a big chest... like, really big.$(br2)Fantastic choice for those who want to store a lot of thing in a lot of bling."
+      "text": "The Diamond Chest is a high-capacity storage tier.$(br2)It fits larger bases and storage rooms that need substantial space in a compact block."
     },
     {
       "type": "patchouli:crafting",
-      "title": "",
+      "title": "Diamond Chest",
       "recipe": "bobbychests:diamond_chest"
     }
   ]
