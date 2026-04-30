@@ -1,6 +1,7 @@
 package com.bobby.bobbychests.chest.menu;
 
 import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
+import com.bobby.bobbychests.registry.ModItems;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -258,7 +259,11 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
                     }
                 } else {
                     if (!this.moveItemStackTo(stack, 0, this.chestSlotCount, false)) {
-                        return ItemStack.EMPTY;
+                        if (this.hasVoidUpgradeInstalled()) {
+                            stack.setCount(0);
+                        } else {
+                            return ItemStack.EMPTY;
+                        }
                     }
                 }
             }
@@ -269,6 +274,15 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
             }
         }
         return previous;
+    }
+
+    protected final boolean hasVoidUpgradeInstalled() {
+        for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
+            if (this.upgradeContainer.getItem(i).getItem() == ModItems.VOID_UPGRADE_CARD.get()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

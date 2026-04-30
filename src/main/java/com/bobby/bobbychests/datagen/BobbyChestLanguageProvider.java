@@ -14,6 +14,8 @@ public final class BobbyChestLanguageProvider extends LanguageProvider {
         this.add("itemGroup.bobbychests", "Bobby Chests");
         this.add("item.bobbychests.networking_upgrade_card", "Networking Upgrade Card");
         this.add("item.bobbychests.infinite_upgrade_card", "Infinite Upgrade Card");
+        this.add("item.bobbychests.void_upgrade_card", "Void Upgrade Card");
+        this.add("item.bobbychests.leave_last_item_upgrade_card", "Leave-Last Upgrade Card");
 
         for (BobbyChestData.ChestDefinition chest : BobbyChestData.CHESTS) {
             this.add(chest.block().get(), chest.displayName());

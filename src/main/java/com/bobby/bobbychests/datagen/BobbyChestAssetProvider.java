@@ -36,6 +36,8 @@ public final class BobbyChestAssetProvider implements DataProvider {
         // Upgrade card item models (keep in datagen; no hand-authored resources).
         futures.addAll(upgradeCardAssets(output, "networking_upgrade_card", "networking_upgrade_card"));
         futures.addAll(upgradeCardAssets(output, "infinite_upgrade_card", "infinite_upgrade_card"));
+        futures.addAll(upgradeCardAssets(output, "void_upgrade_card", "void_upgrade_card"));
+        futures.addAll(upgradeCardAssets(output, "leave_last_item_upgrade_card", "leave_last_item_upgrade_card"));
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
     }
 

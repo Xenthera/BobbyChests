@@ -46,6 +46,27 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
         return this.chest.getUpgradeManager().capabilities().canExtractInfinitely();
     }
 
+    private boolean canVoidWhenFull() {
+        return this.chest.getUpgradeManager().capabilities().canVoidWhenFull();
+    }
+
+    private boolean canLeaveLastItemForAutomation() {
+        return this.chest.getUpgradeManager().capabilities().canLeaveLastItemForAutomation();
+    }
+
+    private boolean hasAnyInsertSpace(NonNullList<ItemStack> items, ItemResource resource) {
+        int cap = capacity(resource);
+        for (ItemStack current : items) {
+            if (current.isEmpty()) {
+                return true;
+            }
+            if (resource.matches(current) && current.getCount() < cap) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public int size() {
         NonNullList<ItemStack> items = this.items();
@@ -98,12 +119,12 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
         ItemStack current = items.get(slot);
         int currentAmount = current.getCount();
         if (currentAmount > 0 && !resource.matches(current)) {
-            return 0;
+            return this.canVoidWhenFull() && !this.hasAnyInsertSpace(items, resource) ? amount : 0;
         }
 
         int inserted = Math.min(amount, capacity(resource) - currentAmount);
         if (inserted <= 0) {
-            return 0;
+            return this.canVoidWhenFull() && !this.hasAnyInsertSpace(items, resource) ? amount : 0;
         }
 
         this.journal(slot).updateSnapshots(tx);
@@ -123,7 +144,15 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
             return 0;
         }
 
-        int available = this.canExtractInfinitely() ? capacity(resource) : current.getCount();
+        if (!this.canExtractInfinitely() && this.canLeaveLastItemForAutomation()) {
+            if (current.getCount() <= 1) {
+                return 0;
+            }
+        }
+
+        int available = this.canExtractInfinitely()
+                ? capacity(resource)
+                : (this.canLeaveLastItemForAutomation() ? Math.max(0, current.getCount() - 1) : current.getCount());
         int extracted = Math.min(amount, available);
         if (extracted <= 0) {
             return 0;

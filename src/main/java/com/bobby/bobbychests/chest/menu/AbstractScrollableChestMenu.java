@@ -213,7 +213,11 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
                     return ItemStack.EMPTY;
                 }
             } else if (!this.moveItemStackToLogicalChest(stack)) {
-                return ItemStack.EMPTY;
+                if (this.hasVoidUpgradeInstalled()) {
+                    stack.setCount(0);
+                } else {
+                    return ItemStack.EMPTY;
+                }
             }
         }
 

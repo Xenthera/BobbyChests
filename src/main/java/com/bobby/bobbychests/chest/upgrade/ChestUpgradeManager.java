@@ -58,8 +58,12 @@ public final class ChestUpgradeManager {
     public ChestUpgradeCapabilities capabilities() {
         Item networking = ModItems.NETWORKING_UPGRADE_CARD.get();
         Item infinite = ModItems.INFINITE_UPGRADE_CARD.get();
+        Item voidCard = ModItems.VOID_UPGRADE_CARD.get();
+        Item leaveLast = ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get();
         boolean networkingPresent = false;
         boolean infinitePresent = false;
+        boolean voidPresent = false;
+        boolean leaveLastPresent = false;
         for (ItemStack stack : this.stacks) {
             if (stack.isEmpty()) {
                 continue;
@@ -70,11 +74,17 @@ public final class ChestUpgradeManager {
             if (stack.getItem() == infinite) {
                 infinitePresent = true;
             }
-            if (networkingPresent && infinitePresent) {
+            if (stack.getItem() == voidCard) {
+                voidPresent = true;
+            }
+            if (stack.getItem() == leaveLast) {
+                leaveLastPresent = true;
+            }
+            if (networkingPresent && infinitePresent && voidPresent && leaveLastPresent) {
                 break;
             }
         }
-        return new ChestUpgradeCapabilities(networkingPresent, infinitePresent);
+        return new ChestUpgradeCapabilities(networkingPresent, infinitePresent, voidPresent, leaveLastPresent);
     }
 
     public void onContentsChanged() {

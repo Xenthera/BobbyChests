@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "bobbychests:item/leave_last_item_upgrade_card"
+  }
+}

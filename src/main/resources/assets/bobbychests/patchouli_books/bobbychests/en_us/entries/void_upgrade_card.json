@@ -1,0 +1,17 @@
+{
+  "name": "Void Upgrade Card",
+  "icon": "bobbychests:void_upgrade_card",
+  "sortnum": 3,
+  "category": "bobbychests:upgrade_cards",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Void Upgrade Card deletes excess items when the chest has no room.$(br2)Automation inserts that cannot fit will be voided instead of rejected, and shift-clicking into a full chest will discard the remainder."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Void Upgrade Card",
+      "recipe": "bobbychests:void_upgrade_card"
+    }
+  ]
+}

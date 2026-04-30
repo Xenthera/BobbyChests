@@ -1,6 +1,8 @@
 {
   "values": [
     "bobbychests:networking_upgrade_card",
-    "bobbychests:infinite_upgrade_card"
+    "bobbychests:infinite_upgrade_card",
+    "bobbychests:void_upgrade_card",
+    "bobbychests:leave_last_item_upgrade_card"
   ]
 }

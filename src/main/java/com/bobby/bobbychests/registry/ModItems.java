@@ -16,6 +16,12 @@ public class ModItems {
     public static final DeferredItem<ChestUpgradeCardItem> INFINITE_UPGRADE_CARD =
             ITEMS.registerItem("infinite_upgrade_card", ChestUpgradeCardItem::new);
 
+    public static final DeferredItem<ChestUpgradeCardItem> VOID_UPGRADE_CARD =
+            ITEMS.registerItem("void_upgrade_card", ChestUpgradeCardItem::new);
+
+    public static final DeferredItem<ChestUpgradeCardItem> LEAVE_LAST_ITEM_UPGRADE_CARD =
+            ITEMS.registerItem("leave_last_item_upgrade_card", ChestUpgradeCardItem::new);
+
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

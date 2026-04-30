@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "#bobbychests:chests",
+    "O": "minecraft:obsidian",
+    "P": "minecraft:paper"
+  },
+  "pattern": [
+    "PPP",
+    "PCP",
+    "POP"
+  ],
+  "result": {
+    "id": "bobbychests:void_upgrade_card"
+  }
+}

@@ -19,6 +19,8 @@
   "container.bobbychests.netherite_chest": "Netherite Chest",
   "container.bobbychests.wooden_chest": "Wooden Chest",
   "item.bobbychests.infinite_upgrade_card": "Infinite Upgrade Card",
+  "item.bobbychests.leave_last_item_upgrade_card": "Leave-Last Upgrade Card",
   "item.bobbychests.networking_upgrade_card": "Networking Upgrade Card",
+  "item.bobbychests.void_upgrade_card": "Void Upgrade Card",
   "itemGroup.bobbychests": "Bobby Chests"
 }

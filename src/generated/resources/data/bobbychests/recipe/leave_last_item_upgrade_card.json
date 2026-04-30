@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "#bobbychests:chests",
+    "P": "minecraft:paper",
+    "S": "minecraft:stick"
+  },
+  "pattern": [
+    "PSP",
+    "PCP",
+    "PSP"
+  ],
+  "result": {
+    "id": "bobbychests:leave_last_item_upgrade_card"
+  }
+}
