@@ -94,6 +94,15 @@ public final class TieredChestPeripheral implements IPeripheral {
     }
 
     @LuaFunction(mainThread = true)
+    public final @Nullable Boolean sort() {
+        if (this.isPrivateChest()) {
+            return null;
+        }
+        this.chest.sortActiveContents();
+        return true;
+    }
+
+    @LuaFunction(mainThread = true)
     public final @Nullable String getTier() {
         if (this.isPrivateChest()) {
             return null;

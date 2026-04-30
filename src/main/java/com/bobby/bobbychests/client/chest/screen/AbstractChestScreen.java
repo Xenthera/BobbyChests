@@ -4,11 +4,15 @@ import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.chest.storage.ChestStorageMode;
+import com.bobby.bobbychests.network.SortChestPayload;
 import com.bobby.bobbychests.network.SetGlobalStorageIdPayload;
 import com.bobby.bobbychests.network.SetLockedPayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ImageButton;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -29,6 +33,7 @@ import java.util.Optional;
 public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends AbstractContainerScreen<M> {
     private EditBox editBox;
     private Button lockButton;
+    private ImageButton sortButton;
     private boolean locked;
     private boolean usingGlobalStorage;
     private int lastSentId = Integer.MIN_VALUE;
@@ -38,9 +43,16 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     private int maxChannelId;
     private boolean applyingClampedText = false;
     private long clampPopupUntilMs = 0L;
+    private boolean clearSortButtonFocusNextTick;
     private static final long CLAMP_POPUP_MS = 1200L;
     private static final int ID_BOX_W = 62;
     private static final int ID_BOX_RIGHT_PAD = 15;
+    private static final int SORT_BTN_SIZE = 9;
+    private static final int SORT_BTN_GAP_AFTER_ID = 2;
+    private static final Identifier SORT_BUTTON = Identifier.fromNamespaceAndPath("bobbychests", "sort_button");
+    private static final Identifier SORT_BUTTON_DISABLED = Identifier.fromNamespaceAndPath("bobbychests", "sort_button_disabled");
+    private static final Identifier SORT_BUTTON_HIGHLIGHTED = Identifier.fromNamespaceAndPath("bobbychests", "sort_button_highlighted");
+    private static final WidgetSprites SORT_BUTTON_SPRITES = new WidgetSprites(SORT_BUTTON, SORT_BUTTON_DISABLED, SORT_BUTTON_HIGHLIGHTED);
 
     protected AbstractChestScreen(M menu, Inventory inv, Component title) {
         super(menu, inv, title, menu.getImageWidthPx(), menu.getImageHeightPx());
@@ -83,6 +95,24 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         this.editBox.setResponder(this::onIdEdited);
         this.addRenderableWidget(this.editBox);
 
+        if (this.shouldShowSortButton()) {
+            int sortX = this.idBoxX() + ID_BOX_W + SORT_BTN_GAP_AFTER_ID;
+            int sortY = this.idBoxY();
+            this.sortButton = new ImageButton(
+                    sortX,
+                    sortY,
+                    SORT_BTN_SIZE,
+                    SORT_BTN_SIZE,
+                    SORT_BUTTON_SPRITES,
+                    btn -> {
+                        ClientPacketDistributor.sendToServer(new SortChestPayload(this.menu.getChestPos()));
+                        this.clearSortButtonFocusNextTick = true;
+                    }
+            );
+            this.sortButton.setTooltip(Tooltip.create(Component.literal("Sort")));
+            this.addRenderableWidget(this.sortButton);
+        }
+
         // Place the lock button outside the menu to the right.
         int lockSize = 18;
         int lockX = this.computeLockButtonX(lockSize);
@@ -98,6 +128,10 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         this.updateStorageModeWidgets();
 
         this.repositionChromeWidgets();
+    }
+
+    protected boolean shouldShowSortButton() {
+        return true;
     }
 
     protected void renderUpgradeSlotPlaceholders(GuiGraphicsExtractor graphics) {
@@ -201,6 +235,11 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         int lockY = this.topPos;
         this.lockButton.setX(lockX);
         this.lockButton.setY(lockY);
+
+        if (this.sortButton != null) {
+            this.sortButton.setX(this.idBoxX() + ID_BOX_W + SORT_BTN_GAP_AFTER_ID);
+            this.sortButton.setY(this.idBoxY());
+        }
     }
 
     /** Syncs UI from the block entity when pooled storage is enabled/disabled by upgrade cards. */
@@ -351,6 +390,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     @Override
     protected void containerTick() {
         super.containerTick();
+        this.clearSortButtonFocusIfQueued();
         this.syncGlobalStorageModeFromBlockEntity();
         this.syncIdBoxFromBlockEntity();
         if (this.pendingId == Integer.MIN_VALUE) {
@@ -370,6 +410,20 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         }
         this.resetScrollMenuOnStorageKeyChange();
         ClientPacketDistributor.sendToServer(new SetGlobalStorageIdPayload(this.menu.getChestPos(), id));
+    }
+
+    private void clearSortButtonFocusIfQueued() {
+        if (!this.clearSortButtonFocusNextTick) {
+            return;
+        }
+        this.clearSortButtonFocusNextTick = false;
+        if (this.sortButton == null) {
+            return;
+        }
+        this.sortButton.setFocused(false);
+        if (this.getFocused() == this.sortButton) {
+            this.setFocused(null);
+        }
     }
 
     private int clampChannel(int id) {

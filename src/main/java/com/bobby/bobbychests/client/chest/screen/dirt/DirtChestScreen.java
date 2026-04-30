@@ -17,6 +17,11 @@ public final class DirtChestScreen extends AbstractChestScreen<DirtChestMenu> {
     }
 
     @Override
+    protected boolean shouldShowSortButton() {
+        return false;
+    }
+
+    @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         this.extractTieredChestGuiBackground(graphics, mouseX, mouseY, partialTick, BG, BG_NO_ID, 256);
     }

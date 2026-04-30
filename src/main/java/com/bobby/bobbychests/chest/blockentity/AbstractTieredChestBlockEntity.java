@@ -12,6 +12,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
@@ -36,6 +37,8 @@ import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.UUID;
 
 public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity implements TieredGlobalChest {
@@ -400,6 +403,74 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
     public NonNullList<ItemStack> getActiveItems() {
         return this.getItems();
+    }
+
+    public void sortActiveContents() {
+        NonNullList<ItemStack> activeItems = this.getActiveItems();
+        int size = Math.min(this.getSlotCount(), activeItems.size());
+
+        ArrayList<ItemStack> stacks = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            ItemStack stack = activeItems.get(i);
+            if (!stack.isEmpty()) {
+                stacks.add(stack.copy());
+            }
+        }
+
+        ArrayList<ItemStack> merged = new ArrayList<>();
+        for (ItemStack stack : stacks) {
+            if (!stack.isStackable()) {
+                int count = Math.max(1, stack.getCount());
+                for (int i = 0; i < count; i++) {
+                    merged.add(stack.copyWithCount(1));
+                }
+                continue;
+            }
+
+            boolean found = false;
+            for (ItemStack target : merged) {
+                if (!target.isStackable()) {
+                    continue;
+                }
+                if (ItemStack.isSameItemSameComponents(target, stack)) {
+                    target.grow(stack.getCount());
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                merged.add(stack);
+            }
+        }
+
+        ArrayList<ItemStack> normalized = new ArrayList<>(merged.size());
+        for (ItemStack stack : merged) {
+            int total = Math.max(1, stack.getCount());
+            int max = Math.max(1, stack.getMaxStackSize());
+            while (total > 0) {
+                int part = Math.min(max, total);
+                normalized.add(stack.copyWithCount(part));
+                total -= part;
+            }
+        }
+
+        normalized.sort(
+                Comparator.comparing((ItemStack stack) -> BuiltInRegistries.ITEM.getKey(stack.getItem()).toString())
+                        .thenComparingInt(ItemStack::hashItemAndComponents)
+                        .thenComparing(Comparator.comparingInt(ItemStack::getCount).reversed())
+        );
+
+        int out = 0;
+        for (; out < normalized.size() && out < size; out++) {
+            activeItems.set(out, normalized.get(out));
+        }
+        for (; out < size; out++) {
+            activeItems.set(out, ItemStack.EMPTY);
+        }
+        this.setChanged();
+        if (this.getLevel() instanceof ServerLevel serverLevel && this.shouldResetScrollableMenuOnStorageKeyChange()) {
+            AbstractScrollableChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
+        }
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.bobby.bobbychests.network;
 
+import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.blockentity.TieredGlobalChest;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import net.minecraft.server.level.ServerLevel;
@@ -41,6 +42,22 @@ public final class ModNetworking {
                         chest.setLocked(payload.locked(), ctx.player());
                     });
                 })
+                .playToServer(SortChestPayload.TYPE, SortChestPayload.STREAM_CODEC, (payload, ctx) -> {
+                    ctx.enqueueWork(() -> {
+                        if (!(ctx.player().level() instanceof ServerLevel level)) {
+                            return;
+                        }
+                        BlockEntity be = level.getBlockEntity(payload.pos());
+                        if (!(be instanceof AbstractTieredChestBlockEntity chest)) {
+                            return;
+                        }
+                        if (!chest.canPlayerOpen(ctx.player())) {
+                            return;
+                        }
+
+                        chest.sortActiveContents();
+                    });
+                })
                 .playBidirectional(
                         SetScrollableChestScrollPayload.TYPE,
                         SetScrollableChestScrollPayload.STREAM_CODEC,
@@ -74,5 +91,6 @@ public final class ModNetworking {
             menu.setScrollRows(payload.scrollRows());
         });
     }
+
 }
 
