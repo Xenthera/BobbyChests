@@ -6,11 +6,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Netherite Chest is the largest standard Bobby Chest tier.$(br2)It uses a scrollable window into a deep backing inventory for dense, endgame storage."
+      "text": "The Netherite Chest - the very biggest there is.$(br2)When you absolutely, positively got to store every MFer in the room... accept no substitutes!"
     },
     {
       "type": "patchouli:crafting",
-      "title": "Netherite Chest",
+      "title": "",
       "recipe": "bobbychests:netherite_chest"
     }
   ]
