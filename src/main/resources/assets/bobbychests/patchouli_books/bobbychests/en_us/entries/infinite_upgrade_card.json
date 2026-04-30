@@ -1,0 +1,17 @@
+{
+  "name": "Infinite Upgrade Card",
+  "icon": "bobbychests:infinite_upgrade_card",
+  "sortnum": 2,
+  "category": "bobbychests:upgrade_cards",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Infinite Upgrade Card makes automation extract items without consuming the stack in the chest.$(br2)Place the card in any upgrade slot, then put the item to duplicate into the chest storage. Players can still add or remove items normally."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Infinite Upgrade Card",
+      "recipe": "bobbychests:infinite_upgrade_card"
+    }
+  ]
+}

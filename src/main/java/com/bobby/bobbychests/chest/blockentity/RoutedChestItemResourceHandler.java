@@ -42,6 +42,10 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
         return resource.isEmpty() ? 99 : Math.min(resource.getMaxStackSize(), 99);
     }
 
+    private boolean canExtractInfinitely() {
+        return this.chest.getUpgradeManager().capabilities().canExtractInfinitely();
+    }
+
     @Override
     public int size() {
         NonNullList<ItemStack> items = this.items();
@@ -57,7 +61,14 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
     @Override
     public long getAmountAsLong(int slot) {
         NonNullList<ItemStack> items = this.items();
-        return items == null ? 0L : items.get(slot).getCount();
+        if (items == null) {
+            return 0L;
+        }
+        ItemStack current = items.get(slot);
+        if (current.isEmpty()) {
+            return 0L;
+        }
+        return this.canExtractInfinitely() ? current.getMaxStackSize() : current.getCount();
     }
 
     @Override
@@ -112,9 +123,14 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
             return 0;
         }
 
-        int extracted = Math.min(amount, current.getCount());
+        int available = this.canExtractInfinitely() ? capacity(resource) : current.getCount();
+        int extracted = Math.min(amount, available);
         if (extracted <= 0) {
             return 0;
+        }
+
+        if (this.canExtractInfinitely()) {
+            return extracted;
         }
 
         this.journal(slot).updateSnapshots(tx);

@@ -13,6 +13,9 @@ public class ModItems {
     public static final DeferredItem<ChestUpgradeCardItem> NETWORKING_UPGRADE_CARD =
             ITEMS.registerItem("networking_upgrade_card", ChestUpgradeCardItem::new);
 
+    public static final DeferredItem<ChestUpgradeCardItem> INFINITE_UPGRADE_CARD =
+            ITEMS.registerItem("infinite_upgrade_card", ChestUpgradeCardItem::new);
+
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

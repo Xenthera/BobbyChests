@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "bobbychests:item/infinite_upgrade_card"
+  }
+}

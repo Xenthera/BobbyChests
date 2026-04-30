@@ -48,6 +48,7 @@ public class BobbyChests {
                 output.accept(ModBlocks.EMERALD_CHEST.get());
                 output.accept(ModBlocks.NETHERITE_CHEST.get());
                 output.accept(ModItems.NETWORKING_UPGRADE_CARD.get());
+                output.accept(ModItems.INFINITE_UPGRADE_CARD.get());
             }).build());
 
     public BobbyChests(IEventBus modEventBus, ModContainer modContainer) {

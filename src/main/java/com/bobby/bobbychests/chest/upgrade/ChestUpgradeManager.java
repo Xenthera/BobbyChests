@@ -57,17 +57,24 @@ public final class ChestUpgradeManager {
     /** Current capabilities from whichever upgrade slots hold matching cards (any slot). */
     public ChestUpgradeCapabilities capabilities() {
         Item networking = ModItems.NETWORKING_UPGRADE_CARD.get();
+        Item infinite = ModItems.INFINITE_UPGRADE_CARD.get();
         boolean networkingPresent = false;
+        boolean infinitePresent = false;
         for (ItemStack stack : this.stacks) {
             if (stack.isEmpty()) {
                 continue;
             }
             if (stack.getItem() == networking) {
                 networkingPresent = true;
+            }
+            if (stack.getItem() == infinite) {
+                infinitePresent = true;
+            }
+            if (networkingPresent && infinitePresent) {
                 break;
             }
         }
-        return new ChestUpgradeCapabilities(networkingPresent);
+        return new ChestUpgradeCapabilities(networkingPresent, infinitePresent);
     }
 
     public void onContentsChanged() {

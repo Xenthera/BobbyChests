@@ -34,17 +34,8 @@ public final class BobbyChestAssetProvider implements DataProvider {
         }
 
         // Upgrade card item models (keep in datagen; no hand-authored resources).
-        Identifier networkingUpgradeCard = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "networking_upgrade_card");
-        futures.add(DataProvider.saveStable(
-                output,
-                generatedItemModel(BobbyChests.MODID + ":item/networking_upgrade_card"),
-                this.modelPathProvider.json(Identifier.fromNamespaceAndPath(BobbyChests.MODID, "item/networking_upgrade_card"))
-        ));
-        futures.add(DataProvider.saveStable(
-                output,
-                modelItemDefinition(Identifier.fromNamespaceAndPath(BobbyChests.MODID, "item/networking_upgrade_card")),
-                this.itemDefinitionPathProvider.json(networkingUpgradeCard)
-        ));
+        futures.addAll(upgradeCardAssets(output, "networking_upgrade_card", "networking_upgrade_card"));
+        futures.addAll(upgradeCardAssets(output, "infinite_upgrade_card", "infinite_upgrade_card"));
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
     }
 
@@ -90,6 +81,23 @@ public final class BobbyChestAssetProvider implements DataProvider {
         textures.addProperty("layer0", layer0);
         root.add("textures", textures);
         return root;
+    }
+
+    private List<CompletableFuture<?>> upgradeCardAssets(CachedOutput output, String itemId, String textureId) {
+        Identifier item = Identifier.fromNamespaceAndPath(BobbyChests.MODID, itemId);
+        Identifier model = Identifier.fromNamespaceAndPath(BobbyChests.MODID, "item/" + itemId);
+        return List.of(
+                DataProvider.saveStable(
+                        output,
+                        generatedItemModel(BobbyChests.MODID + ":item/" + textureId),
+                        this.modelPathProvider.json(model)
+                ),
+                DataProvider.saveStable(
+                        output,
+                        modelItemDefinition(model),
+                        this.itemDefinitionPathProvider.json(item)
+                )
+        );
     }
 
     private static JsonObject modelItemDefinition(Identifier model) {

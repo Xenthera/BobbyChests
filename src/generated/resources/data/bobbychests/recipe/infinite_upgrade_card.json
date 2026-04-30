@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "#bobbychests:chests",
+    "E": "minecraft:ender_pearl",
+    "P": "minecraft:paper"
+  },
+  "pattern": [
+    "PEP",
+    "ECE",
+    "PEP"
+  ],
+  "result": {
+    "id": "bobbychests:infinite_upgrade_card"
+  }
+}
