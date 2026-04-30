@@ -222,6 +222,32 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         }
     }
 
+    private void syncIdBoxFromBlockEntity() {
+        if (!this.usingGlobalStorage) {
+            return;
+        }
+        if (this.minecraft == null || this.minecraft.level == null) {
+            return;
+        }
+        if (this.editBox == null || this.editBox.isFocused()) {
+            return;
+        }
+        BlockEntity be = this.minecraft.level.getBlockEntity(this.menu.getChestPos());
+        if (!(be instanceof AbstractTieredChestBlockEntity chest)) {
+            return;
+        }
+        int id = clampChannel(chest.getGlobalStorageId());
+        if (id == this.lastSentId) {
+            return;
+        }
+        this.pendingId = Integer.MIN_VALUE;
+        this.lastSentId = id;
+        String text = String.valueOf(id);
+        if (!text.equals(this.editBox.getValue())) {
+            this.editBox.setValue(text);
+        }
+    }
+
     private void clampGuiOnScreen() {
         // AbstractContainerScreen centers the GUI, but for very wide/tall menus the centered rect can still spill
         // off-screen once extra widgets (lock button) are considered.
@@ -326,6 +352,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     protected void containerTick() {
         super.containerTick();
         this.syncGlobalStorageModeFromBlockEntity();
+        this.syncIdBoxFromBlockEntity();
         if (this.pendingId == Integer.MIN_VALUE) {
             return;
         }

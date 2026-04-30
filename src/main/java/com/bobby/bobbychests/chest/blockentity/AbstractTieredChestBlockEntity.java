@@ -245,6 +245,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
             if (this.getStorageMode() != ChestStorageMode.GLOBAL) {
                 this.globalStorageId = clamped;
                 this.setChanged();
+                this.requestClientUpdate();
                 return;
             }
             GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
@@ -253,6 +254,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
             this.globalStorageId = clamped;
             this.setChanged();
+            this.requestClientUpdate();
             data.registerOrUpdateChest(this);
 
             GlobalTieredChestData.StorageKey newKey = data.keyForChest(this);
@@ -313,6 +315,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
                 this.ownerUuid = null;
             }
             this.setChanged();
+            this.requestClientUpdate();
             if (this.getStorageMode() == ChestStorageMode.GLOBAL) {
                 data.registerOrUpdateChest(this);
             }
@@ -409,6 +412,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         super.loadAdditional(input);
         this.ensureLocalItemsSize(this.getSlotCount());
         this.upgradeManager.load(input);
+        // Also used for client update packets (getUpdateTag), so keep these reads tolerant of missing keys.
         this.globalStorageId = input.getIntOr(TAG_GLOBAL_STORAGE_ID, 0);
         this.storageMode = input.getBooleanOr(TAG_STORAGE_MODE, false) ? ChestStorageMode.GLOBAL : ChestStorageMode.LOCAL;
         this.locked = input.getBooleanOr(TAG_LOCKED, false);
@@ -436,7 +440,10 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         CompoundTag tag = super.getUpdateTag(registries);
+        tag.putInt(TAG_GLOBAL_STORAGE_ID, this.globalStorageId);
         tag.putBoolean(TAG_STORAGE_MODE, this.getStorageMode() == ChestStorageMode.GLOBAL);
+        tag.putBoolean(TAG_LOCKED, this.locked);
+        tag.putString(TAG_OWNER_UUID, this.ownerUuid == null ? "" : this.ownerUuid.toString());
         return tag;
     }
 
