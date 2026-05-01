@@ -6,11 +6,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Wooden Chest is the standard starting point for Bobby Chests.$(br2)It provides basic storage in a familiar chest tier."
+      "text": "Larger than the Dirt Chest, but smaller than a standard Minecraft chest.$(br2)A starting point for the early game Chest enthusiast."
     },
     {
       "type": "patchouli:crafting",
-      "title": "Wooden Chest",
+      "title": "",
       "recipe": "bobbychests:wooden_chest"
     }
   ]

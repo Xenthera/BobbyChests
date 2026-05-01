@@ -6,11 +6,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Gold Chest is a higher storage tier.$(br2)It offers a more valuable material step in the Bobby Chests progression."
+      "text": "The Gold Chest is where you can really start to store a decent amount of stuff.$(br2)It's the same size as a standard double Minecraft chest."
     },
     {
       "type": "patchouli:crafting",
-      "title": "Gold Chest",
+      "title": "",
       "recipe": "bobbychests:gold_chest"
     }
   ]

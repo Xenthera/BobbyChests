@@ -6,11 +6,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Iron Chest is a dependable mid-tier storage block.$(br2)It is well suited for bases that need more organization without jumping straight into precious materials."
+      "text": "The Iron Chest is a dependable mid-tier storage block.$(br2)We're now at the size of a standard Minecraft chest. Well done!"
     },
     {
       "type": "patchouli:crafting",
-      "title": "Iron Chest",
+      "title": "",
       "recipe": "bobbychests:iron_chest"
     }
   ]

@@ -6,11 +6,11 @@
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Dirt Chest is the humblest Bobby Chest tier.$(br2)It offers a simple entry point into the storage system and is best treated as a basic container for early experiments."
+      "text": "Need to store a single item? Why not get started with a Dirt Chest?$(br2)You can store a WHOLE STACK of one item in here!"
     },
     {
       "type": "patchouli:crafting",
-      "title": "Dirt Chest",
+      "title": "",
       "recipe": "bobbychests:dirt_chest"
     }
   ]
