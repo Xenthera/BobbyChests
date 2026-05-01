@@ -1,5 +1,6 @@
 package com.bobby.bobbychests.chest.blockentity;
 
+import com.bobby.bobbychests.chest.storage.DeepStorageStacks;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
@@ -42,6 +43,10 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
         return resource.isEmpty() ? 99 : Math.min(resource.getMaxStackSize(), 99);
     }
 
+    private boolean canUseDeepStorage() {
+        return this.chest.canUseDeepStorage();
+    }
+
     private boolean canExtractInfinitely() {
         return this.chest.getUpgradeManager().capabilities().canExtractInfinitely();
     }
@@ -54,13 +59,17 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
         return this.chest.getUpgradeManager().capabilities().canLeaveLastItemForAutomation();
     }
 
+    private static boolean matchesIgnoringDeepCount(ItemResource resource, ItemStack stack) {
+        return resource.matches(stack) || DeepStorageStacks.isSameItemSameComponentsIgnoringDeepCount(resource.toStack(1), stack);
+    }
+
     private boolean hasAnyInsertSpace(NonNullList<ItemStack> items, ItemResource resource) {
         int cap = capacity(resource);
         for (ItemStack current : items) {
             if (current.isEmpty()) {
                 return true;
             }
-            if (resource.matches(current) && current.getCount() < cap) {
+            if (matchesIgnoringDeepCount(resource, current) && current.getCount() < cap) {
                 return true;
             }
         }
@@ -89,6 +98,12 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
         if (current.isEmpty()) {
             return 0L;
         }
+        if (this.canUseDeepStorage()) {
+            long deep = DeepStorageStacks.getDeepCount(current);
+            if (deep > 0L) {
+                return deep;
+            }
+        }
         return this.canExtractInfinitely() ? current.getMaxStackSize() : current.getCount();
     }
 
@@ -100,6 +115,9 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
         }
         if (!resource.isEmpty() && !this.isValid(slot, resource)) {
             return 0L;
+        }
+        if (this.canUseDeepStorage() && !resource.isEmpty() && resource.getMaxStackSize() > 1) {
+            return Long.MAX_VALUE;
         }
         return capacity(resource);
     }
@@ -116,9 +134,37 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
         if (items == null) {
             return 0;
         }
+        if (this.canUseDeepStorage() && resource.getMaxStackSize() > 1) {
+            ItemStack current = items.get(slot);
+            long currentDeep = DeepStorageStacks.getDeepCount(current);
+            if (!current.isEmpty() && currentDeep <= 0L && current.getMaxStackSize() > 1) {
+                // Upgrade an existing normal stack into a deep-storage marker.
+                currentDeep = current.getCount();
+            }
+            if (!current.isEmpty() && !matchesIgnoringDeepCount(resource, current)) {
+                return this.canVoidWhenFull() && !this.hasAnyInsertSpace(items, resource) ? amount : 0;
+            }
+
+            long next = currentDeep + (long) amount;
+            int inserted = amount;
+            if (next < 0L || next > Long.MAX_VALUE) {
+                // overflow safety; cap
+                long remainingCap = Long.MAX_VALUE - currentDeep;
+                inserted = (int) Math.min((long) amount, Math.max(0L, remainingCap));
+                next = currentDeep + inserted;
+            }
+            if (inserted <= 0) {
+                return this.canVoidWhenFull() && !this.hasAnyInsertSpace(items, resource) ? amount : 0;
+            }
+
+            this.journal(slot).updateSnapshots(tx);
+            ItemStack base = current.isEmpty() ? resource.toStack(1) : current;
+            items.set(slot, DeepStorageStacks.makeDeepMarker(base, next));
+            return inserted;
+        }
         ItemStack current = items.get(slot);
         int currentAmount = current.getCount();
-        if (currentAmount > 0 && !resource.matches(current)) {
+        if (currentAmount > 0 && !matchesIgnoringDeepCount(resource, current)) {
             return this.canVoidWhenFull() && !this.hasAnyInsertSpace(items, resource) ? amount : 0;
         }
 
@@ -140,8 +186,32 @@ final class RoutedChestItemResourceHandler implements ResourceHandler<ItemResour
             return 0;
         }
         ItemStack current = items.get(slot);
-        if (!resource.matches(current)) {
+        if (!matchesIgnoringDeepCount(resource, current)) {
             return 0;
+        }
+        if (this.canUseDeepStorage()) {
+            long deep = DeepStorageStacks.getDeepCount(current);
+            if (deep > 0L) {
+                long available = deep;
+                if (this.canLeaveLastItemForAutomation() && available <= 1L) {
+                    return 0;
+                }
+                if (this.canLeaveLastItemForAutomation()) {
+                    available = Math.max(0L, available - 1L);
+                }
+                int extracted = (int) Math.min((long) amount, available);
+                if (extracted <= 0) {
+                    return 0;
+                }
+                this.journal(slot).updateSnapshots(tx);
+                long next = deep - extracted;
+                if (next <= 0L) {
+                    items.set(slot, ItemStack.EMPTY);
+                } else {
+                    items.set(slot, DeepStorageStacks.makeDeepMarker(current, next));
+                }
+                return extracted;
+            }
         }
 
         if (!this.canExtractInfinitely() && this.canLeaveLastItemForAutomation()) {

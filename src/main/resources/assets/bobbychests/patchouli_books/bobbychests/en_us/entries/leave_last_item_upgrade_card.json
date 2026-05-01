@@ -10,7 +10,7 @@
     },
     {
       "type": "patchouli:crafting",
-      "title": "Leave-Last Upgrade Card",
+      "title": "",
       "recipe": "bobbychests:leave_last_item_upgrade_card"
     }
   ]

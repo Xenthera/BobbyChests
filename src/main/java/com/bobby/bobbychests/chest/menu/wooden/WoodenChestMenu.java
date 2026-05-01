@@ -47,6 +47,11 @@ public final class WoodenChestMenu extends AbstractChestMenu {
     }
 
     @Override
+    protected boolean allowDeepStorageUpgradeCard() {
+        return true;
+    }
+
+    @Override
     public int getImageWidthPx() {
         return AbstractChestMenu.imageWidthChestGridPlusUpgradeStrip(SLOTS_PER_ROW);
     }

@@ -10,7 +10,7 @@
     },
     {
       "type": "patchouli:crafting",
-      "title": "Networking Upgrade Card",
+      "title": "",
       "recipe": "bobbychests:networking_upgrade_card"
     }
   ]

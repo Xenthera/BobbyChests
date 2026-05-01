@@ -10,7 +10,7 @@
     },
     {
       "type": "patchouli:crafting",
-      "title": "Void Upgrade Card",
+      "title": "",
       "recipe": "bobbychests:void_upgrade_card"
     }
   ]

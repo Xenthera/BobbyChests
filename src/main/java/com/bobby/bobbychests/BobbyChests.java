@@ -53,6 +53,7 @@ public class BobbyChests {
                 output.accept(ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get());
                 output.accept(ModItems.RETAIN_ITEMS_UPGRADE_CARD.get());
                 output.accept(ModItems.LOCK_UPGRADE_CARD.get());
+                output.accept(ModItems.DEEP_STORAGE_UPGRADE_CARD.get());
             }).build());
 
     public BobbyChests(IEventBus modEventBus, ModContainer modContainer) {

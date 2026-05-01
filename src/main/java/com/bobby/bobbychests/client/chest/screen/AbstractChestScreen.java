@@ -21,6 +21,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
@@ -28,6 +29,7 @@ import org.joml.Vector2i;
 
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.world.inventory.Slot;
 
 public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends AbstractContainerScreen<M> {
     private EditBox editBox;
@@ -483,11 +485,19 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     }
 
     @Override
+    protected void extractSlot(GuiGraphicsExtractor graphics, Slot slot, int mouseX, int mouseY) {
+        super.extractSlot(graphics, slot, mouseX, mouseY);
+        DeepStorageSlotRenderer.renderSlotCount(graphics, this.font, this.menu, slot);
+    }
+
+    @Override
+    protected List<Component> getTooltipFromContainerItem(ItemStack itemStack) {
+        return DeepStorageSlotRenderer.appendStoredCountTooltip(itemStack, super.getTooltipFromContainerItem(itemStack));
+    }
+
+    @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-        if (this.editBox == null) {
-            return;
-        }
-        if (Util.getMillis() > this.clampPopupUntilMs) {
+        if (this.editBox == null || Util.getMillis() > this.clampPopupUntilMs) {
             return;
         }
         Component msg = Component.literal("Max channels " + this.maxChannelId);

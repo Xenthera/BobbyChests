@@ -16,5 +16,10 @@ public class WoodenChestBlockEntity extends AbstractTieredChestBlockEntity {
     public int getSlotCount() {
         return 9;
     }
+
+    @Override
+    protected boolean supportsDeepStorage() {
+        return true;
+    }
 }
 

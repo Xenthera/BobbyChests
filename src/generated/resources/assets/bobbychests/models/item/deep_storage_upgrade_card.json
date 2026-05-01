@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "bobbychests:item/deep_storage_upgrade_card"
+  }
+}

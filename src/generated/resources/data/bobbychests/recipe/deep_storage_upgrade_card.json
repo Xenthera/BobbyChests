@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "D": "bobbychests:dirt_chest",
+    "M": "minecraft:chest",
+    "P": "minecraft:paper"
+  },
+  "pattern": [
+    "PMP",
+    "PDP",
+    "PMP"
+  ],
+  "result": {
+    "id": "bobbychests:deep_storage_upgrade_card"
+  }
+}

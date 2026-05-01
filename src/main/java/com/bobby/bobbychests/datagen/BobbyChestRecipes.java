@@ -1,5 +1,6 @@
 package com.bobby.bobbychests.datagen;
 
+import com.bobby.bobbychests.registry.ModBlocks;
 import com.bobby.bobbychests.registry.ModItems;
 
 import net.minecraft.core.HolderLookup;
@@ -8,6 +9,7 @@ import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -87,6 +89,16 @@ public final class BobbyChestRecipes extends RecipeProvider {
                 .define('P', Items.PAPER)
                 .define('I', Items.IRON_NUGGET)
                 .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
+                .save(this.output);
+
+        this.shaped(RecipeCategory.MISC, ModItems.DEEP_STORAGE_UPGRADE_CARD.get())
+                .pattern("PMP")
+                .pattern("PDP")
+                .pattern("PMP")
+                .define('P', Items.PAPER)
+                .define('D', ModBlocks.DIRT_CHEST.get())
+                .define('M', Blocks.CHEST)
+                .unlockedBy("has_dirt_chest", this.has(ModBlocks.DIRT_CHEST.get()))
                 .save(this.output);
     }
 

@@ -28,6 +28,9 @@ public class ModItems {
     public static final DeferredItem<ChestUpgradeCardItem> LOCK_UPGRADE_CARD =
             ITEMS.registerItem("lock_upgrade_card", ChestUpgradeCardItem::new);
 
+    public static final DeferredItem<ChestUpgradeCardItem> DEEP_STORAGE_UPGRADE_CARD =
+            ITEMS.registerItem("deep_storage_upgrade_card", ChestUpgradeCardItem::new);
+
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

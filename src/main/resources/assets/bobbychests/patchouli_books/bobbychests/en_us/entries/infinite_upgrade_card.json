@@ -10,7 +10,7 @@
     },
     {
       "type": "patchouli:crafting",
-      "title": "Infinite Upgrade Card",
+      "title": "",
       "recipe": "bobbychests:infinite_upgrade_card"
     }
   ]

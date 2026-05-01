@@ -62,12 +62,14 @@ public final class ChestUpgradeManager {
         Item leaveLast = ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get();
         Item retain = ModItems.RETAIN_ITEMS_UPGRADE_CARD.get();
         Item lock = ModItems.LOCK_UPGRADE_CARD.get();
+        Item deep = ModItems.DEEP_STORAGE_UPGRADE_CARD.get();
         boolean networkingPresent = false;
         boolean infinitePresent = false;
         boolean voidPresent = false;
         boolean leaveLastPresent = false;
         boolean retainPresent = false;
         boolean lockPresent = false;
+        boolean deepPresent = false;
         for (ItemStack stack : this.stacks) {
             if (stack.isEmpty()) {
                 continue;
@@ -90,11 +92,14 @@ public final class ChestUpgradeManager {
             if (stack.getItem() == lock) {
                 lockPresent = true;
             }
-            if (networkingPresent && infinitePresent && voidPresent && leaveLastPresent && retainPresent && lockPresent) {
+            if (stack.getItem() == deep) {
+                deepPresent = true;
+            }
+            if (networkingPresent && infinitePresent && voidPresent && leaveLastPresent && retainPresent && lockPresent && deepPresent) {
                 break;
             }
         }
-        return new ChestUpgradeCapabilities(networkingPresent, infinitePresent, voidPresent, leaveLastPresent, retainPresent, lockPresent);
+        return new ChestUpgradeCapabilities(networkingPresent, infinitePresent, voidPresent, leaveLastPresent, retainPresent, lockPresent, deepPresent);
     }
 
     public void onContentsChanged() {

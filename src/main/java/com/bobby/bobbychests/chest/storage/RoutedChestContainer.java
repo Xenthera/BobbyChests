@@ -43,12 +43,38 @@ public class RoutedChestContainer implements Container {
 
     @Override
     public ItemStack getItem(int slot) {
+        // Must return the actual backing stack object. Vanilla Slot/moveItemStackTo mutates this reference.
         return this.items().get(slot);
     }
 
     @Override
+    public boolean canPlaceItem(int slot, ItemStack stack) {
+        return true;
+    }
+
+    @Override
     public ItemStack removeItem(int slot, int amount) {
-        ItemStack result = ContainerHelper.removeItem(this.items(), slot, amount);
+        NonNullList<ItemStack> items = this.items();
+        ItemStack current = items.get(slot);
+        if (!current.isEmpty() && this.chest.canUseDeepStorage()) {
+            long deep = DeepStorageStacks.getDeepCount(current);
+            if (deep > 0L) {
+                int extracted = (int) Math.min((long) amount, deep);
+                if (extracted <= 0) {
+                    return ItemStack.EMPTY;
+                }
+                long next = deep - extracted;
+                if (next <= 0L) {
+                    items.set(slot, ItemStack.EMPTY);
+                } else {
+                    items.set(slot, DeepStorageStacks.makeDeepMarker(current, next));
+                }
+                this.chest.setChanged();
+                return DeepStorageStacks.copyWithoutDeepCount(current, extracted);
+            }
+        }
+
+        ItemStack result = ContainerHelper.removeItem(items, slot, amount);
         if (!result.isEmpty()) {
             this.chest.setChanged();
         }
@@ -68,7 +94,56 @@ public class RoutedChestContainer implements Container {
 
     @Override
     public void setItem(int slot, ItemStack stack) {
-        this.items().set(slot, stack);
+        NonNullList<ItemStack> items = this.items();
+        if (this.chest.canUseDeepStorage()) {
+            ItemStack current = items.get(slot);
+            if (stack.isEmpty()) {
+                items.set(slot, ItemStack.EMPTY);
+                this.chest.setChanged();
+                return;
+            }
+            if (stack.getMaxStackSize() <= 1) {
+                items.set(slot, stack);
+                this.chest.setChanged();
+                return;
+            }
+            long incomingDeep = DeepStorageStacks.getDeepCount(stack);
+            if (incomingDeep > 0L) {
+                if (!current.isEmpty() && !DeepStorageStacks.isSameItemSameComponentsIgnoringDeepCount(current, stack)) {
+                    return;
+                }
+                items.set(slot, DeepStorageStacks.makeDeepMarker(stack, incomingDeep));
+                this.chest.setChanged();
+                return;
+            }
+            if (!current.isEmpty()) {
+                long deep = DeepStorageStacks.getDeepCount(current);
+                if (deep > 0L) {
+                    if (!DeepStorageStacks.isSameItemSameComponentsIgnoringDeepCount(current, stack)) {
+                        return;
+                    }
+                    long next = deep + (long) stack.getCount();
+                    if (next < 0L) {
+                        next = Long.MAX_VALUE;
+                    }
+                    items.set(slot, DeepStorageStacks.makeDeepMarker(current, next));
+                    this.chest.setChanged();
+                    return;
+                }
+                if (!DeepStorageStacks.isSameItemSameComponentsIgnoringDeepCount(current, stack)) {
+                    return;
+                }
+                items.set(slot, DeepStorageStacks.makeDeepMarker(current, (long) current.getCount() + stack.getCount()));
+                this.chest.setChanged();
+                return;
+            }
+            // Empty slot (or normal stack present): start deep storage with this stack as the marker.
+            items.set(slot, DeepStorageStacks.makeDeepMarker(stack, (long) stack.getCount()));
+            this.chest.setChanged();
+            return;
+        }
+
+        items.set(slot, stack);
         this.chest.setChanged();
     }
 

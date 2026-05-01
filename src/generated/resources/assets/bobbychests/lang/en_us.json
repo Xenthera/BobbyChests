@@ -18,6 +18,7 @@
   "container.bobbychests.iron_chest": "Iron Chest",
   "container.bobbychests.netherite_chest": "Netherite Chest",
   "container.bobbychests.wooden_chest": "Wooden Chest",
+  "item.bobbychests.deep_storage_upgrade_card": "Deep Storage Upgrade Card",
   "item.bobbychests.infinite_upgrade_card": "Infinite Upgrade Card",
   "item.bobbychests.leave_last_item_upgrade_card": "Leave-Last Upgrade Card",
   "item.bobbychests.lock_upgrade_card": "Lock Upgrade Card",

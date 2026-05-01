@@ -1,6 +1,8 @@
 package com.bobby.bobbychests.chest.blockentity;
 
+import com.bobby.bobbychests.chest.storage.ChestContentSorter;
 import com.bobby.bobbychests.chest.storage.ChestStorageMode;
+import com.bobby.bobbychests.chest.storage.DeepStorageStacks;
 import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
 import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
@@ -12,7 +14,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
@@ -41,8 +42,6 @@ import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.UUID;
 
 public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity implements TieredGlobalChest {
@@ -152,12 +151,47 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         return this.upgradeManager;
     }
 
+    protected boolean supportsDeepStorage() {
+        return false;
+    }
+
+    public final boolean canUseDeepStorage() {
+        if (!this.supportsDeepStorage()) {
+            return false;
+        }
+        if (this.getStorageMode() != ChestStorageMode.LOCAL) {
+            return false;
+        }
+        return this.upgradeManager.capabilities().canUseDeepStorage();
+    }
+
     public abstract int getSlotCount();
 
     public void onUpgradeInventoryChanged() {
         if (this.level != null && !this.level.isClientSide()) {
+            this.discardDeepStorageContentsIfUpgradeMissing();
             this.reconcileStorageModeWithUpgrades();
             this.reconcileLockedStateWithUpgrades();
+        }
+    }
+
+    private void discardDeepStorageContentsIfUpgradeMissing() {
+        if (this.upgradeManager.capabilities().canUseDeepStorage()) {
+            return;
+        }
+        NonNullList<ItemStack> active = this.getActiveItems();
+        int size = Math.min(this.getSlotCount(), active.size());
+        boolean changed = false;
+        for (int i = 0; i < size; i++) {
+            if (DeepStorageStacks.getDeepCount(active.get(i)) <= 0L) {
+                continue;
+            }
+            active.set(i, ItemStack.EMPTY);
+            changed = true;
+        }
+        if (changed) {
+            this.setChanged();
+            this.requestClientUpdate();
         }
     }
 
@@ -493,65 +527,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     public void sortActiveContents() {
         NonNullList<ItemStack> activeItems = this.getActiveItems();
         int size = Math.min(this.getSlotCount(), activeItems.size());
-
-        ArrayList<ItemStack> stacks = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            ItemStack stack = activeItems.get(i);
-            if (!stack.isEmpty()) {
-                stacks.add(stack.copy());
-            }
-        }
-
-        ArrayList<ItemStack> merged = new ArrayList<>();
-        for (ItemStack stack : stacks) {
-            if (!stack.isStackable()) {
-                int count = Math.max(1, stack.getCount());
-                for (int i = 0; i < count; i++) {
-                    merged.add(stack.copyWithCount(1));
-                }
-                continue;
-            }
-
-            boolean found = false;
-            for (ItemStack target : merged) {
-                if (!target.isStackable()) {
-                    continue;
-                }
-                if (ItemStack.isSameItemSameComponents(target, stack)) {
-                    target.grow(stack.getCount());
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                merged.add(stack);
-            }
-        }
-
-        ArrayList<ItemStack> normalized = new ArrayList<>(merged.size());
-        for (ItemStack stack : merged) {
-            int total = Math.max(1, stack.getCount());
-            int max = Math.max(1, stack.getMaxStackSize());
-            while (total > 0) {
-                int part = Math.min(max, total);
-                normalized.add(stack.copyWithCount(part));
-                total -= part;
-            }
-        }
-
-        normalized.sort(
-                Comparator.comparing((ItemStack stack) -> BuiltInRegistries.ITEM.getKey(stack.getItem()).toString())
-                        .thenComparingInt(ItemStack::hashItemAndComponents)
-                        .thenComparing(Comparator.comparingInt(ItemStack::getCount).reversed())
-        );
-
-        int out = 0;
-        for (; out < normalized.size() && out < size; out++) {
-            activeItems.set(out, normalized.get(out));
-        }
-        for (; out < size; out++) {
-            activeItems.set(out, ItemStack.EMPTY);
-        }
+        ChestContentSorter.sort(activeItems, size, this.canUseDeepStorage());
         this.setChanged();
         if (this.getLevel() instanceof ServerLevel serverLevel && this.shouldResetScrollableMenuOnStorageKeyChange()) {
             AbstractScrollableChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
@@ -728,6 +704,15 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         if (this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel) {
             this.dropLocalItems(this.getLevel(), pos);
             return;
+        }
+        if (level != null && !level.isClientSide() && this.canUseDeepStorage()) {
+            // Deep storage can hold massive counts; for now we discard all deep contents on break.
+            NonNullList<ItemStack> active = this.getActiveItems();
+            int size = Math.min(this.getSlotCount(), active.size());
+            for (int i = 0; i < size; i++) {
+                active.set(i, ItemStack.EMPTY);
+            }
+            this.setChanged();
         }
         super.preRemoveSideEffects(pos, state);
     }

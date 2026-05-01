@@ -40,6 +40,7 @@ public final class BobbyChestAssetProvider implements DataProvider {
         futures.addAll(upgradeCardAssets(output, "leave_last_item_upgrade_card", "leave_last_item_upgrade_card"));
         futures.addAll(upgradeCardAssets(output, "retain_items_upgrade_card", "retain_items_upgrade_card"));
         futures.addAll(upgradeCardAssets(output, "lock_upgrade_card", "lock_upgrade_card"));
+        futures.addAll(upgradeCardAssets(output, "deep_storage_upgrade_card", "deep_storage_upgrade_card"));
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
     }
 

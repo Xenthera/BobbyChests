@@ -16,5 +16,10 @@ public class DirtChestBlockEntity extends AbstractTieredChestBlockEntity {
     public int getSlotCount() {
         return 1;
     }
+
+    @Override
+    protected boolean supportsDeepStorage() {
+        return true;
+    }
 }
 

@@ -10,7 +10,7 @@
     },
     {
       "type": "patchouli:crafting",
-      "title": "Lock Upgrade Card",
+      "title": "",
       "recipe": "bobbychests:lock_upgrade_card"
     }
   ]

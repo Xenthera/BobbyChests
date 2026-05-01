@@ -1,6 +1,7 @@
 package com.bobby.bobbychests.chest.menu;
 
 import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
+import com.bobby.bobbychests.chest.storage.DeepStorageStacks;
 import com.bobby.bobbychests.registry.ModItems;
 
 import net.minecraft.core.BlockPos;
@@ -10,9 +11,11 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -214,8 +217,37 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
 
     protected final void addUpgradeSlots() {
         for (int i = 0; i < this.getUpgradeSlotCount(); i++) {
-            this.addSlot(new UpgradeSlot(this.upgradeContainer, i, this.getUpgradeSlotBaseX(), this.getUpgradeSlotY(i)));
+            int idx = i;
+            this.addSlot(new Slot(this.upgradeContainer, idx, this.getUpgradeSlotBaseX(), this.getUpgradeSlotY(idx)) {
+                @Override
+                public boolean mayPlace(ItemStack stack) {
+                    if (!ChestUpgradeManager.isUpgradeCard(stack)) {
+                        return false;
+                    }
+                    if (stack.getItem() == ModItems.DEEP_STORAGE_UPGRADE_CARD.get()) {
+                        return AbstractChestMenu.this.allowDeepStorageUpgradeCard();
+                    }
+                    return true;
+                }
+
+                @Override
+                public int getMaxStackSize() {
+                    return 1;
+                }
+
+                @Override
+                public int getMaxStackSize(ItemStack stack) {
+                    return 1;
+                }
+            });
         }
+    }
+
+    /**
+     * Deep storage is intended for dirt chests only right now, but the rest of the implementation can be tier-agnostic.
+     */
+    protected boolean allowDeepStorageUpgradeCard() {
+        return true;
     }
 
     protected final void addPlayerInventorySlots(Inventory playerInventory, int leftX, int topY) {
@@ -243,6 +275,12 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
             ItemStack stack = slot.getItem();
             previous = stack.copy();
             if (index < this.chestSlotCount) {
+                long deep = DeepStorageStacks.getDeepCount(stack);
+                if (deep > 0L) {
+                    // Deep markers stay in the source slot after one stack is extracted, which vanilla quick-move
+                    // can interpret as "keep transferring". The actual transfer is handled in clicked(QUICK_MOVE).
+                    return ItemStack.EMPTY;
+                }
                 if (!this.moveItemStackTo(stack, this.getFirstPlayerSlotIndex(), this.slots.size(), true)) {
                     return ItemStack.EMPTY;
                 }
@@ -258,7 +296,9 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
                         }
                     }
                 } else {
-                    if (!this.moveItemStackTo(stack, 0, this.chestSlotCount, false)) {
+                    if (DeepStorageMenuActions.tryMoveIntoDeepStorage(this, stack)) {
+                        // handled
+                    } else if (!this.moveItemStackTo(stack, 0, this.chestSlotCount, false)) {
                         if (this.hasVoidUpgradeInstalled()) {
                             stack.setCount(0);
                         } else {
@@ -276,6 +316,26 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
         return previous;
     }
 
+    @Override
+    public void clicked(int slotId, int button, ContainerInput containerInput, Player player) {
+        if (slotId >= 0 && slotId < this.chestSlotCount && this.canUseDeepStorageInMenu()) {
+            if (DeepStorageMenuActions.handleDeepStorageClick(this, slotId, button, containerInput, player)) {
+                return;
+            }
+        }
+        super.clicked(slotId, button, containerInput, player);
+    }
+
+    final boolean canUseDeepStorageInMenu() {
+        return this.allowDeepStorageUpgradeCard()
+                && this.hasDeepStorageUpgradeInstalled()
+                && !this.hasNetworkingUpgradeInstalled();
+    }
+
+    final boolean moveItemStackToRange(ItemStack stack, int startIndex, int endIndex, boolean reverseDirection) {
+        return this.moveItemStackTo(stack, startIndex, endIndex, reverseDirection);
+    }
+
     protected final boolean hasVoidUpgradeInstalled() {
         for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
             if (this.upgradeContainer.getItem(i).getItem() == ModItems.VOID_UPGRADE_CARD.get()) {
@@ -288,6 +348,24 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     public final boolean hasLockUpgradeInstalled() {
         for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
             if (this.upgradeContainer.getItem(i).getItem() == ModItems.LOCK_UPGRADE_CARD.get()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public final boolean hasDeepStorageUpgradeInstalled() {
+        for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
+            if (this.upgradeContainer.getItem(i).getItem() == ModItems.DEEP_STORAGE_UPGRADE_CARD.get()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasNetworkingUpgradeInstalled() {
+        for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
+            if (this.upgradeContainer.getItem(i).getItem() == ModItems.NETWORKING_UPGRADE_CARD.get()) {
                 return true;
             }
         }

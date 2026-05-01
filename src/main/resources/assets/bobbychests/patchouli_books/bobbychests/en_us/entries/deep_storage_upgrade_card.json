@@ -1,0 +1,18 @@
+{
+  "name": "Deep Storage Upgrade Card",
+  "icon": "bobbychests:deep_storage_upgrade_card",
+  "sortnum": 7,
+  "category": "bobbychests:upgrade_cards",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Deep Storage Upgrade Card turns each slot into a deep-storage slot that can hold a virtually unlimited amount of one stackable item type."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "",
+      "recipe": "bobbychests:deep_storage_upgrade_card"
+    }
+  ]
+}
+
