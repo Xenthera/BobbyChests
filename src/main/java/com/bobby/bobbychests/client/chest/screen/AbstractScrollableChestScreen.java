@@ -241,20 +241,16 @@ public abstract class AbstractScrollableChestScreen<M extends AbstractScrollable
                 && (this.isMouseOverChestGrid(mouseX, mouseY) || this.isMouseOverScrollbarTrack(mouseX, mouseY))) {
             int max = this.menu.maxScrollRows();
             if (max <= 0) {
-                return this.tryScrollTallGuiOnMouseWheel(mouseX, mouseY, scrollX, scrollY);
+                return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
             }
             int deltaRows = (int) -Math.signum(scrollY);
             if (this.menu.applyScrollDelta(deltaRows)) {
                 this.sendScrollRowsToServer();
                 return true;
             }
-            this.tryScrollTallGuiOnMouseWheel(mouseX, mouseY, scrollX, scrollY);
             return true;
         }
-        if (this.delegateContainerMouseScrolled(mouseX, mouseY, scrollX, scrollY)) {
-            return true;
-        }
-        return this.tryScrollTallGuiOnMouseWheel(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override

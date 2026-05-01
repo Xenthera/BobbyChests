@@ -285,6 +285,15 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
         return false;
     }
 
+    public final boolean hasLockUpgradeInstalled() {
+        for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
+            if (this.upgradeContainer.getItem(i).getItem() == ModItems.LOCK_UPGRADE_CARD.get()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public void removed(Player player) {
         super.removed(player);

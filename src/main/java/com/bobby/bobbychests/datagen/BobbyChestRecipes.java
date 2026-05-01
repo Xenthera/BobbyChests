@@ -67,6 +67,27 @@ public final class BobbyChestRecipes extends RecipeProvider {
                 .define('S', Items.STICK)
                 .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
                 .save(this.output);
+
+        this.shaped(RecipeCategory.MISC, ModItems.RETAIN_ITEMS_UPGRADE_CARD.get())
+                .pattern("PSP")
+                .pattern("BCB")
+                .pattern("PSP")
+                .define('C', BobbyChestTags.CHEST_ITEMS)
+                .define('P', Items.PAPER)
+                .define('S', Items.STRING)
+                .define('B', Items.BUNDLE)
+                .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
+                .save(this.output);
+
+        this.shaped(RecipeCategory.MISC, ModItems.LOCK_UPGRADE_CARD.get())
+                .pattern("PIP")
+                .pattern("PCP")
+                .pattern("PPP")
+                .define('C', BobbyChestTags.CHEST_ITEMS)
+                .define('P', Items.PAPER)
+                .define('I', Items.IRON_NUGGET)
+                .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
+                .save(this.output);
     }
 
     public static final class Runner extends RecipeProvider.Runner {

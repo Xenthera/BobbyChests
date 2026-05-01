@@ -1,0 +1,17 @@
+{
+  "name": "Lock Upgrade Card",
+  "icon": "bobbychests:lock_upgrade_card",
+  "sortnum": 6,
+  "category": "bobbychests:upgrade_cards",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The Lock Upgrade Card adds a lock toggle to the chest screen when installed in any upgrade slot.$(br2)Use the toggle to lock or unlock the chest. While locked, access is limited to the user who locked it. Removing the card from a locked chest's upgrade slot unlocks it."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Lock Upgrade Card",
+      "recipe": "bobbychests:lock_upgrade_card"
+    }
+  ]
+}

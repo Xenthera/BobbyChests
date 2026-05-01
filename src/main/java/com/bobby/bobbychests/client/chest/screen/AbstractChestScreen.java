@@ -8,7 +8,6 @@ import com.bobby.bobbychests.network.SortChestPayload;
 import com.bobby.bobbychests.network.SetGlobalStorageIdPayload;
 import com.bobby.bobbychests.network.SetLockedPayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.Tooltip;
@@ -32,7 +31,8 @@ import java.util.Optional;
 
 public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends AbstractContainerScreen<M> {
     private EditBox editBox;
-    private Button lockButton;
+    private ImageButton lockButtonLocked;
+    private ImageButton lockButtonUnlocked;
     private ImageButton sortButton;
     private boolean locked;
     private boolean usingGlobalStorage;
@@ -44,15 +44,32 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     private boolean applyingClampedText = false;
     private long clampPopupUntilMs = 0L;
     private boolean clearSortButtonFocusNextTick;
+    /** Previous tick's {@link AbstractChestMenu#hasLockUpgradeInstalled()}; used to refresh lock UI when the card is added or removed. */
+    private boolean lastHadLockUpgradeInstalled;
     private static final long CLAMP_POPUP_MS = 1200L;
+    private static final int GUI_MARGIN_PX = 6;
+    private static final int ID_BOX_H = 10;
     private static final int ID_BOX_W = 62;
     private static final int ID_BOX_RIGHT_PAD = 15;
+    private static final int LOCK_TOGGLE_W = 18;
+    private static final int LOCK_TOGGLE_H = 9;
+    private static final int LOCK_TOGGLE_LEFT_PAD = 7;
     private static final int SORT_BTN_SIZE = 9;
     private static final int SORT_BTN_GAP_AFTER_ID = 2;
     private static final Identifier SORT_BUTTON = Identifier.fromNamespaceAndPath("bobbychests", "sort_button");
     private static final Identifier SORT_BUTTON_DISABLED = Identifier.fromNamespaceAndPath("bobbychests", "sort_button_disabled");
     private static final Identifier SORT_BUTTON_HIGHLIGHTED = Identifier.fromNamespaceAndPath("bobbychests", "sort_button_highlighted");
     private static final WidgetSprites SORT_BUTTON_SPRITES = new WidgetSprites(SORT_BUTTON, SORT_BUTTON_DISABLED, SORT_BUTTON_HIGHLIGHTED);
+
+    private static final Identifier LOCK_TOGGLE_LOCKED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_locked");
+    private static final Identifier LOCK_TOGGLE_LOCKED_DISABLED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_locked_disabled");
+    private static final Identifier LOCK_TOGGLE_LOCKED_HIGHLIGHTED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_locked_highlighted");
+    private static final WidgetSprites LOCKED_SPRITES = new WidgetSprites(LOCK_TOGGLE_LOCKED, LOCK_TOGGLE_LOCKED_DISABLED, LOCK_TOGGLE_LOCKED_HIGHLIGHTED);
+
+    private static final Identifier LOCK_TOGGLE_UNLOCKED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_unlocked");
+    private static final Identifier LOCK_TOGGLE_UNLOCKED_DISABLED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_unlocked_disabled");
+    private static final Identifier LOCK_TOGGLE_UNLOCKED_HIGHLIGHTED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_unlocked_highlighted");
+    private static final WidgetSprites UNLOCKED_SPRITES = new WidgetSprites(LOCK_TOGGLE_UNLOCKED, LOCK_TOGGLE_UNLOCKED_DISABLED, LOCK_TOGGLE_UNLOCKED_HIGHLIGHTED);
 
     protected AbstractChestScreen(M menu, Inventory inv, Component title) {
         super(menu, inv, title, menu.getImageWidthPx(), menu.getImageHeightPx());
@@ -70,22 +87,41 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         return this.topPos + 5;
     }
 
+    private AbstractTieredChestBlockEntity getChestBlockEntity() {
+        if (this.minecraft == null || this.minecraft.level == null) {
+            return null;
+        }
+        BlockEntity be = this.minecraft.level.getBlockEntity(this.menu.getChestPos());
+        return be instanceof AbstractTieredChestBlockEntity chest ? chest : null;
+    }
+
     @Override
     protected void init() {
         super.init();
         this.clampGuiOnScreen();
-        int idBoxX = this.idBoxX();
-        int idBoxY = this.idBoxY();
-        int idBoxW = ID_BOX_W;
-        int idBoxH = 10;
-
         this.locked = this.menu.getInitialLocked();
         this.usingGlobalStorage = this.menu.getInitialUsingGlobalStorage();
         this.maxChannelId = this.menu.getMaxChannelId();
 
+        this.initIdBox();
+        this.initSortButton();
+        this.initLockToggle();
+        this.updateStorageModeWidgets();
+    }
+
+    private void initIdBox() {
+        int idBoxX = this.idBoxX();
+        int idBoxY = this.idBoxY();
+
         // Keep the same visual text position as bordered=true (x+4, y+(h-8)/2),
         // but render with no background/border.
-        this.editBox = new EditBox(this.font, idBoxX + 4, idBoxY + (idBoxH - 8) / 2, idBoxW - 8, idBoxH, Component.literal("ID"));
+        this.editBox = new EditBox(
+                this.font,
+                idBoxX + 4,
+                idBoxY + (ID_BOX_H - 8) / 2,
+                ID_BOX_W - 8,
+                ID_BOX_H,
+                Component.literal("ID"));
         this.editBox.setMaxLength(9);
         this.editBox.setFilter(s -> s.chars().allMatch(Character::isDigit));
         this.editBox.setBordered(false);
@@ -94,40 +130,42 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         this.lastSentId = initial;
         this.editBox.setResponder(this::onIdEdited);
         this.addRenderableWidget(this.editBox);
+    }
 
-        if (this.shouldShowSortButton()) {
-            int sortX = this.idBoxX() + ID_BOX_W + SORT_BTN_GAP_AFTER_ID;
-            int sortY = this.idBoxY();
-            this.sortButton = new ImageButton(
-                    sortX,
-                    sortY,
-                    SORT_BTN_SIZE,
-                    SORT_BTN_SIZE,
-                    SORT_BUTTON_SPRITES,
-                    btn -> {
-                        ClientPacketDistributor.sendToServer(new SortChestPayload(this.menu.getChestPos()));
-                        this.clearSortButtonFocusNextTick = true;
-                    }
-            );
-            this.sortButton.setTooltip(Tooltip.create(Component.literal("Sort")));
-            this.addRenderableWidget(this.sortButton);
+    private void initSortButton() {
+        if (!this.shouldShowSortButton()) {
+            return;
         }
 
-        // Place the lock button outside the menu to the right.
-        int lockSize = 18;
-        int lockX = this.computeLockButtonX(lockSize);
-        int lockY = this.topPos;
-        this.lockButton = Button.builder(lockLabel(this.locked), btn -> {
-            this.locked = !this.locked;
-            btn.setMessage(lockLabel(this.locked));
-            this.resetScrollMenuOnStorageKeyChange();
-            ClientPacketDistributor.sendToServer(new SetLockedPayload(this.menu.getChestPos(), this.locked));
-        }).bounds(lockX, lockY, lockSize, lockSize).build();
-        this.addRenderableWidget(this.lockButton);
+        int sortX = this.idBoxX() + ID_BOX_W + SORT_BTN_GAP_AFTER_ID;
+        int sortY = this.idBoxY();
+        this.sortButton = new ImageButton(
+                sortX,
+                sortY,
+                SORT_BTN_SIZE,
+                SORT_BTN_SIZE,
+                SORT_BUTTON_SPRITES,
+                btn -> {
+                    ClientPacketDistributor.sendToServer(new SortChestPayload(this.menu.getChestPos()));
+                    this.clearSortButtonFocusNextTick = true;
+                }
+        );
+        this.sortButton.setTooltip(Tooltip.create(Component.literal("Sort")));
+        this.addRenderableWidget(this.sortButton);
+    }
 
-        this.updateStorageModeWidgets();
-
-        this.repositionChromeWidgets();
+    private void initLockToggle() {
+        // Lock toggle exists for all chests but is only visible/active when the lock upgrade card is installed.
+        int lockX = this.lockToggleX();
+        int lockY = this.idBoxY();
+        this.lockButtonLocked = new ImageButton(lockX, lockY, LOCK_TOGGLE_W, LOCK_TOGGLE_H, LOCKED_SPRITES, btn -> this.onLockToggleClicked());
+        this.lockButtonUnlocked = new ImageButton(lockX, lockY, LOCK_TOGGLE_W, LOCK_TOGGLE_H, UNLOCKED_SPRITES, btn -> this.onLockToggleClicked());
+        this.lockButtonLocked.setTooltip(Tooltip.create(Component.literal("Locked")));
+        this.lockButtonUnlocked.setTooltip(Tooltip.create(Component.literal("Unlocked")));
+        this.addRenderableWidget(this.lockButtonLocked);
+        this.addRenderableWidget(this.lockButtonUnlocked);
+        this.lastHadLockUpgradeInstalled = this.menu.hasLockUpgradeInstalled();
+        this.applyLockToggleUi();
     }
 
     protected boolean shouldShowSortButton() {
@@ -172,83 +210,14 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (this.delegateContainerMouseScrolled(mouseX, mouseY, scrollX, scrollY)) {
-            return true;
-        }
-
-        return this.tryScrollTallGuiOnMouseWheel(mouseX, mouseY, scrollX, scrollY);
-    }
-
-    /** Bundle / item-slot mouse wheel handling from {@link AbstractContainerScreen}. */
-    protected boolean delegateContainerMouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        // Scrolling is handled by the container (e.g. scrollable chests) rather than moving the whole GUI.
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
-    }
-
-    /** When the chest GUI is taller than the window, nudge the whole container vertically with the wheel. */
-    protected boolean tryScrollTallGuiOnMouseWheel(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (!this.needsGuiVerticalScroll()) {
-            return false;
-        }
-        if (scrollY == 0.0D) {
-            return false;
-        }
-
-        if (!this.isMouseOverChestGui(mouseX, mouseY)) {
-            return false;
-        }
-
-        int margin = 6;
-        int minTop = margin;
-        int maxTop = this.height - margin - this.imageHeight;
-        int step = 18; // one slot row at a time feels natural for chest UIs
-        int delta = (int) Math.signum(scrollY) * step;
-        this.topPos = Mth.clamp(this.topPos - delta, maxTop, minTop);
-        this.repositionChromeWidgets();
-        return true;
-    }
-
-    private boolean needsGuiVerticalScroll() {
-        int margin = 6;
-        return this.imageHeight + (2 * margin) > this.height;
-    }
-
-    private boolean isMouseOverChestGui(double mouseX, double mouseY) {
-        return mouseX >= this.leftPos
-                && mouseY >= this.topPos
-                && mouseX < this.leftPos + this.imageWidth
-                && mouseY < this.topPos + this.imageHeight;
-    }
-
-    private void repositionChromeWidgets() {
-        if (this.editBox == null || this.lockButton == null) {
-            return;
-        }
-        int idBoxW = ID_BOX_W;
-        int idBoxH = 10;
-        int idBoxX = this.idBoxX();
-        int idBoxY = this.idBoxY();
-        this.editBox.setX(idBoxX + 4);
-        this.editBox.setY(idBoxY + (idBoxH - 8) / 2);
-
-        int lockSize = 18;
-        int lockX = this.computeLockButtonX(lockSize);
-        int lockY = this.topPos;
-        this.lockButton.setX(lockX);
-        this.lockButton.setY(lockY);
-
-        if (this.sortButton != null) {
-            this.sortButton.setX(this.idBoxX() + ID_BOX_W + SORT_BTN_GAP_AFTER_ID);
-            this.sortButton.setY(this.idBoxY());
-        }
     }
 
     /** Syncs UI from the block entity when pooled storage is enabled/disabled by upgrade cards. */
     private void syncGlobalStorageModeFromBlockEntity() {
-        if (this.minecraft == null || this.minecraft.level == null) {
-            return;
-        }
-        BlockEntity be = this.minecraft.level.getBlockEntity(this.menu.getChestPos());
-        if (!(be instanceof AbstractTieredChestBlockEntity chest)) {
+        AbstractTieredChestBlockEntity chest = this.getChestBlockEntity();
+        if (chest == null) {
             return;
         }
         boolean global = chest.getStorageMode() == ChestStorageMode.GLOBAL;
@@ -265,14 +234,11 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         if (!this.usingGlobalStorage) {
             return;
         }
-        if (this.minecraft == null || this.minecraft.level == null) {
-            return;
-        }
         if (this.editBox == null || this.editBox.isFocused()) {
             return;
         }
-        BlockEntity be = this.minecraft.level.getBlockEntity(this.menu.getChestPos());
-        if (!(be instanceof AbstractTieredChestBlockEntity chest)) {
+        AbstractTieredChestBlockEntity chest = this.getChestBlockEntity();
+        if (chest == null) {
             return;
         }
         int id = clampChannel(chest.getGlobalStorageId());
@@ -289,14 +255,9 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
 
     private void clampGuiOnScreen() {
         // AbstractContainerScreen centers the GUI, but for very wide/tall menus the centered rect can still spill
-        // off-screen once extra widgets (lock button) are considered.
-        int margin = 6;
-        int lockSize = 18;
-        int lockPad = 6;
-        int extraRight = lockSize + lockPad;
-
-        int minLeft = margin;
-        int maxLeft = this.width - margin - this.imageWidth - extraRight;
+        // off-screen once extra widgets are considered.
+        int minLeft = GUI_MARGIN_PX;
+        int maxLeft = this.width - GUI_MARGIN_PX - this.imageWidth;
         if (maxLeft < minLeft) {
             // Not enough horizontal room even with clamping; keep as much on-screen as possible.
             this.leftPos = (this.width - this.imageWidth) / 2;
@@ -304,8 +265,8 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
             this.leftPos = Mth.clamp(this.leftPos, minLeft, maxLeft);
         }
 
-        int minTop = margin;
-        int maxTop = this.height - margin - this.imageHeight;
+        int minTop = GUI_MARGIN_PX;
+        int maxTop = this.height - GUI_MARGIN_PX - this.imageHeight;
         if (maxTop < minTop) {
             // Taller than the window: allow vertical scrolling instead of "centering" into negative space.
             this.topPos = Mth.clamp(this.topPos, maxTop, minTop);
@@ -314,16 +275,52 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         }
     }
 
-    private int computeLockButtonX(int lockSize) {
-        int desired = this.leftPos + this.imageWidth + 6;
-        int margin = 6;
-        int maxX = this.width - margin - lockSize;
-        // Prefer "outside to the right", but fall back inward if it would render off-screen.
-        return Math.min(desired, maxX);
+    private int lockToggleX() {
+        return this.leftPos + LOCK_TOGGLE_LEFT_PAD;
     }
 
-    private static Component lockLabel(boolean locked) {
-        return Component.literal(locked ? "🔒" : "🔓");
+    private void onLockToggleClicked() {
+        this.locked = !this.locked;
+        this.applyLockToggleUi();
+        this.resetScrollMenuOnStorageKeyChange();
+        ClientPacketDistributor.sendToServer(new SetLockedPayload(this.menu.getChestPos(), this.locked));
+    }
+
+    /**
+     * Keeps the lock toggle aligned with the server when the lock upgrade is removed (chest auto-unlocks) or
+     * re-inserted, without polling the block entity every tick while the upgrade slot is stable (so optimistic clicks
+     * still feel instant).
+     */
+    private void syncLockStateFromChestWhenUpgradePresenceChanges() {
+        boolean hasLockUpgrade = this.menu.hasLockUpgradeInstalled();
+        boolean pullLockedFromChest = !hasLockUpgrade || hasLockUpgrade != this.lastHadLockUpgradeInstalled;
+        AbstractTieredChestBlockEntity chest = this.getChestBlockEntity();
+        if (chest != null) {
+            if (pullLockedFromChest) {
+                this.locked = chest.isLocked();
+            }
+            this.lastHadLockUpgradeInstalled = hasLockUpgrade;
+        }
+        this.applyLockToggleUi();
+    }
+
+    private void applyLockToggleUi() {
+        if (this.lockButtonLocked == null || this.lockButtonUnlocked == null) {
+            return;
+        }
+        boolean hasUpgrade = this.menu.hasLockUpgradeInstalled();
+        if (!hasUpgrade) {
+            this.lockButtonLocked.visible = false;
+            this.lockButtonUnlocked.visible = false;
+            this.lockButtonLocked.active = false;
+            this.lockButtonUnlocked.active = false;
+            return;
+        }
+
+        this.lockButtonLocked.visible = this.locked;
+        this.lockButtonUnlocked.visible = !this.locked;
+        this.lockButtonLocked.active = true;
+        this.lockButtonUnlocked.active = true;
     }
 
     protected final boolean usingGlobalStorage() {
@@ -354,24 +351,22 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
             id = 0;
         }
         int clamped = clampChannel(id);
-        if (!value.isBlank()) {
-            String clampedText = String.valueOf(clamped);
-            if (!clampedText.equals(value) && this.editBox != null) {
-                showClampPopup();
-                this.applyingClampedText = true;
-                this.editBox.setValue(clampedText);
-                this.applyingClampedText = false;
-                // Ensure the server gets the clamped value (the setValue() will re-trigger this responder,
-                // but that's a client-only rewrite; we still need to send).
-                if (clamped != this.lastSentId) {
-                    this.pendingId = clamped;
-                    this.sendAfterMs = Util.getMillis();
-                } else {
-                    this.pendingId = Integer.MIN_VALUE;
-                }
-                // The setValue() will re-trigger this responder; no need to continue.
-                return;
+        String clampedText = String.valueOf(clamped);
+        if (!clampedText.equals(value) && this.editBox != null) {
+            showClampPopup();
+            this.applyingClampedText = true;
+            this.editBox.setValue(clampedText);
+            this.applyingClampedText = false;
+            // Ensure the server gets the clamped value (the setValue() will re-trigger this responder,
+            // but that's a client-only rewrite; we still need to send).
+            if (clamped != this.lastSentId) {
+                this.pendingId = clamped;
+                this.sendAfterMs = Util.getMillis();
+            } else {
+                this.pendingId = Integer.MIN_VALUE;
             }
+            // The setValue() will re-trigger this responder; no need to continue.
+            return;
         }
         if (clamped == this.lastSentId) {
             this.pendingId = Integer.MIN_VALUE;
@@ -392,6 +387,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         super.containerTick();
         this.clearSortButtonFocusIfQueued();
         this.syncGlobalStorageModeFromBlockEntity();
+        this.syncLockStateFromChestWhenUpgradePresenceChanges();
         this.syncIdBoxFromBlockEntity();
         if (this.pendingId == Integer.MIN_VALUE) {
             return;
@@ -487,7 +483,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     }
 
     @Override
-    protected void extractLabels(net.minecraft.client.gui.GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+    protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         if (this.editBox == null) {
             return;
         }

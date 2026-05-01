@@ -9,4 +9,6 @@ public record ChestUpgradeCapabilities(
         boolean canUseGlobalPooledStorage,
         boolean canExtractInfinitely,
         boolean canVoidWhenFull,
-        boolean canLeaveLastItemForAutomation) {}
+        boolean canLeaveLastItemForAutomation,
+        boolean canRetainItemsOnBreak,
+        boolean canUseLocking) {}

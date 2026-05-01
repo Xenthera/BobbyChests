@@ -10,6 +10,7 @@ import com.bobby.bobbychests.chest.block.iron.IronChestBlock;
 import com.bobby.bobbychests.chest.block.netherite.NetheriteChestBlock;
 import com.bobby.bobbychests.chest.block.wooden.WoodenChestBlock;
 import com.bobby.bobbychests.registry.ModItems;
+import com.bobby.bobbychests.item.TieredChestBlockItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
@@ -77,7 +78,7 @@ public class ModBlocks {
     }
 
     private static <T extends Block> void registerBlockItem(String name, DeferredBlock<T> block) {
-        ModItems.ITEMS.registerItem(name, (properties) -> new BlockItem(block.get(), properties.useBlockDescriptionPrefix()));
+        ModItems.ITEMS.registerItem(name, (properties) -> new TieredChestBlockItem(block.get(), properties.useBlockDescriptionPrefix()));
     }
 
     public static void register(IEventBus modEventBus) {

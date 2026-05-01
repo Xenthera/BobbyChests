@@ -3,6 +3,8 @@
     "bobbychests:networking_upgrade_card",
     "bobbychests:infinite_upgrade_card",
     "bobbychests:void_upgrade_card",
-    "bobbychests:leave_last_item_upgrade_card"
+    "bobbychests:leave_last_item_upgrade_card",
+    "bobbychests:retain_items_upgrade_card",
+    "bobbychests:lock_upgrade_card"
   ]
 }

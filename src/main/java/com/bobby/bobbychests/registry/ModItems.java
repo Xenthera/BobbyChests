@@ -22,6 +22,12 @@ public class ModItems {
     public static final DeferredItem<ChestUpgradeCardItem> LEAVE_LAST_ITEM_UPGRADE_CARD =
             ITEMS.registerItem("leave_last_item_upgrade_card", ChestUpgradeCardItem::new);
 
+    public static final DeferredItem<ChestUpgradeCardItem> RETAIN_ITEMS_UPGRADE_CARD =
+            ITEMS.registerItem("retain_items_upgrade_card", ChestUpgradeCardItem::new);
+
+    public static final DeferredItem<ChestUpgradeCardItem> LOCK_UPGRADE_CARD =
+            ITEMS.registerItem("lock_upgrade_card", ChestUpgradeCardItem::new);
+
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

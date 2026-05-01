@@ -16,9 +16,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.Container;
 import net.minecraft.world.Containers;
 import net.minecraft.world.LockCode;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -31,6 +33,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.transfer.ResourceHandler;
@@ -154,6 +157,16 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     public void onUpgradeInventoryChanged() {
         if (this.level != null && !this.level.isClientSide()) {
             this.reconcileStorageModeWithUpgrades();
+            this.reconcileLockedStateWithUpgrades();
+        }
+    }
+
+    private void reconcileLockedStateWithUpgrades() {
+        if (!(this.level instanceof ServerLevel)) {
+            return;
+        }
+        if (this.locked && !this.upgradeManager.capabilities().canUseLocking()) {
+            this.setLocked(false, null);
         }
     }
 
@@ -545,6 +558,34 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         }
     }
 
+    /**
+     * Creates block-entity NBT suitable for attaching to a dropped chest item when retain-items is enabled.
+     * <p>
+     * The returned tag stores a LOCAL snapshot of the chest's active route contents (GLOBAL or LOCAL) into the
+     * standard container item list, so on placement those items are restored as this chest's local/inactive stash.
+     */
+    public final TagValueOutput createRetainedDropTag(HolderLookup.Provider registries) {
+        // Start with our normal full metadata (includes upgrades, lock, owner, etc.).
+        CompoundTag tag = this.saveWithFullMetadata(registries);
+        TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, registries);
+        output.store(tag);
+
+        // Replace the container item list with a LOCAL snapshot only.
+        // If the chest is currently using GLOBAL storage (networking card installed), we must not snapshot the shared
+        // global inventory into the dropped item, otherwise placing it back down can "clone" the global contents into
+        // the chest's local stash.
+        NonNullList<ItemStack> local = this.localItems();
+        int size = Math.min(this.getSlotCount(), local.size());
+        NonNullList<ItemStack> snapshot = NonNullList.withSize(size, ItemStack.EMPTY);
+        for (int i = 0; i < size; i++) {
+            ItemStack stack = local.get(i);
+            snapshot.set(i, stack.isEmpty() ? ItemStack.EMPTY : stack.copy());
+        }
+        output.discard("Items");
+        ContainerHelper.saveAllItems(output, snapshot);
+        return output;
+    }
+
     @Override
     protected void setItems(NonNullList<ItemStack> stacks) {
         this.items = this.resizedLocalCopy(stacks);
@@ -676,6 +717,11 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     @Override
     public void preRemoveSideEffects(BlockPos pos, BlockState state) {
         Level level = this.getLevel();
+        if (level != null && !level.isClientSide() && this.upgradeManager.capabilities().canRetainItemsOnBreak()) {
+            // The chest item drop (via the block's getDrops override) carries a retained snapshot of both
+            // inventory and upgrades, so do not spill anything here.
+            return;
+        }
         if (level != null && !level.isClientSide()) {
             this.upgradeManager.dropContents(level, pos);
         }

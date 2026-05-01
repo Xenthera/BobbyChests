@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": "minecraft:bundle",
+    "C": "#bobbychests:chests",
+    "P": "minecraft:paper",
+    "S": "minecraft:string"
+  },
+  "pattern": [
+    "PSP",
+    "BCB",
+    "PSP"
+  ],
+  "result": {
+    "id": "bobbychests:retain_items_upgrade_card"
+  }
+}
