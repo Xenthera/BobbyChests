@@ -7,6 +7,8 @@ import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.chest.ChestTier;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -35,6 +37,7 @@ import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity implements TieredGlobalChest {
@@ -43,6 +46,14 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     private static final String TAG_STORAGE_MODE = "bobbychests:storage_mode";
     private static final String TAG_LOCKED = "bobbychests:locked";
     private static final String TAG_OWNER_UUID = "bobbychests:owner_uuid";
+    private static final String TAG_LOCAL_ITEMS = "bobbychests:local_items";
+
+    private record StoredSlot(int slot, ItemStack stack) {
+        private static final Codec<StoredSlot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.INT.fieldOf("Slot").forGetter(StoredSlot::slot),
+                ItemStack.OPTIONAL_CODEC.fieldOf("Stack").forGetter(StoredSlot::stack)
+        ).apply(instance, StoredSlot::new));
+    }
 
     private final ChestTier tier;
     private int globalStorageId;
@@ -426,6 +437,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
         this.ensureLocalItemsSize(this.getSlotCount());
+        this.loadLocalItems(input);
         this.upgradeManager.load(input);
         // Client update packets can contain only part of the saved data.
         this.globalStorageId = input.getIntOr(TAG_GLOBAL_STORAGE_ID, 0);
@@ -449,6 +461,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         output.putBoolean(TAG_STORAGE_MODE, this.getStorageMode() == ChestStorageMode.GLOBAL);
         output.putBoolean(TAG_LOCKED, this.locked);
         output.putString(TAG_OWNER_UUID, this.ownerUuid == null ? "" : this.ownerUuid.toString());
+        this.saveLocalItems(output);
         this.upgradeManager.save(output);
     }
 
@@ -470,6 +483,36 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     private NonNullList<ItemStack> localItems() {
         this.ensureLocalItemsSize(this.getSlotCount());
         return this.items;
+    }
+
+    private void loadLocalItems(ValueInput input) {
+        var storedSlots = input.read(TAG_LOCAL_ITEMS, StoredSlot.CODEC.listOf());
+        if (storedSlots.isEmpty()) {
+            return;
+        }
+
+        NonNullList<ItemStack> local = this.localItems();
+        for (int slot = 0; slot < local.size(); slot++) {
+            local.set(slot, ItemStack.EMPTY);
+        }
+        for (StoredSlot stored : storedSlots.get()) {
+            if (stored.slot() < 0 || stored.slot() >= local.size()) {
+                continue;
+            }
+            local.set(stored.slot(), stored.stack().copy());
+        }
+    }
+
+    private void saveLocalItems(ValueOutput output) {
+        NonNullList<ItemStack> local = this.localItems();
+        ArrayList<StoredSlot> storedSlots = new ArrayList<>();
+        for (int slot = 0; slot < local.size(); slot++) {
+            ItemStack stack = local.get(slot);
+            if (!stack.isEmpty()) {
+                storedSlots.add(new StoredSlot(slot, stack.copy()));
+            }
+        }
+        output.store(TAG_LOCAL_ITEMS, StoredSlot.CODEC.listOf(), storedSlots);
     }
 
     private NonNullList<ItemStack> resizedLocalCopy(NonNullList<ItemStack> stacks) {
