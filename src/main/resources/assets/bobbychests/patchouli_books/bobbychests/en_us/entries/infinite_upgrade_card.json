@@ -1,12 +1,12 @@
 {
-  "name": "Creative Infinite Upgrade Card",
+  "name": "Creative Infinite Upgrade",
   "icon": "bobbychests:infinite_upgrade_card",
   "sortnum": 2,
   "category": "bobbychests:upgrade_cards",
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Creative Infinite Upgrade Card makes automation extract items without consuming the stack in the chest.$(br2)This card is creative-only and has no crafting recipe. Place it in any upgrade slot, then put the item to duplicate into the chest storage. Players can still add or remove items normally."
+      "text": "The Creative Infinite Upgrade makes automation extract items without consuming the stack in the chest.$(br2)This upgrade is creative-only and has no crafting recipe. Place it in any upgrade slot, then put the item to duplicate into the chest storage. Players can still add or remove items normally."
     }
   ]
 }

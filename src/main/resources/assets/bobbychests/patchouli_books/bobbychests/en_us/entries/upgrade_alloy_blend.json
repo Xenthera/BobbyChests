@@ -1,0 +1,20 @@
+{
+  "name": "Upgrade Alloy Blend",
+  "icon": "bobbychests:upgrade_alloy_blend",
+  "sortnum": -2,
+  "category": "bobbychests:upgrade_cards",
+  "extra_recipe_mappings": {
+    "bobbychests:upgrade_alloy_blend": 1
+  },
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Upgrade Alloy Blend is the raw material mixture used to make Upgrade Alloy.$(br2)It combines copper, iron, redstone, and charcoal into a blend that can be smelted into a stable alloy."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Alloy Blend",
+      "recipe": "bobbychests:upgrade_alloy_blend"
+    }
+  ]
+}

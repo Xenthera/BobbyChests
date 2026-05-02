@@ -1,0 +1,20 @@
+{
+  "name": "Blank Upgrade Card",
+  "icon": "bobbychests:blank_upgrade_card",
+  "sortnum": 0,
+  "category": "bobbychests:upgrade_cards",
+  "extra_recipe_mappings": {
+    "bobbychests:blank_upgrade_card": 1
+  },
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Every craftable upgrade starts from a Blank Upgrade Card.$(br2)First craft Upgrade Alloy Blend, then smelt it into Upgrade Alloy. Combine that refined alloy with paper and redstone to make a blank card."
+    },
+    {
+      "type": "patchouli:crafting",
+      "title": "Blank Card",
+      "recipe": "bobbychests:blank_upgrade_card"
+    }
+  ]
+}

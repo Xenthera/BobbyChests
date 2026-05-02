@@ -1,6 +1,5 @@
 package com.bobby.bobbychests.datagen;
 
-import com.bobby.bobbychests.registry.ModBlocks;
 import com.bobby.bobbychests.registry.ModItems;
 
 import net.minecraft.core.HolderLookup;
@@ -8,7 +7,10 @@ import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
+import net.minecraft.data.recipes.SimpleCookingRecipeBuilder;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.CookingBookCategory;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Blocks;
 
 import java.util.concurrent.CompletableFuture;
@@ -31,64 +33,109 @@ public final class BobbyChestRecipes extends RecipeProvider {
                     .save(this.output);
         }
 
-        this.shaped(RecipeCategory.MISC, ModItems.NETWORKING_UPGRADE_CARD.get())
-                .pattern("PPP")
-                .pattern("PCP")
-                .pattern("PPP")
-                .define('C', BobbyChestTags.CHEST_ITEMS)
-                .define('P', Items.PAPER)
-                .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
+        this.shapeless(RecipeCategory.MISC, ModItems.UPGRADE_ALLOY_BLEND.get())
+                .requires(Items.COPPER_INGOT)
+                .requires(Items.IRON_NUGGET)
+                .requires(Items.REDSTONE)
+                .requires(Items.CHARCOAL)
+                .unlockedBy("has_redstone", this.has(Items.REDSTONE))
                 .save(this.output);
 
-        this.shaped(RecipeCategory.MISC, ModItems.VOID_UPGRADE_CARD.get())
-                .pattern("PPP")
-                .pattern("PCP")
-                .pattern("POP")
-                .define('C', BobbyChestTags.CHEST_ITEMS)
-                .define('O', Items.OBSIDIAN)
-                .define('P', Items.PAPER)
-                .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
+        SimpleCookingRecipeBuilder.smelting(
+                        Ingredient.of(ModItems.UPGRADE_ALLOY_BLEND.get()),
+                        RecipeCategory.MISC,
+                        CookingBookCategory.MISC,
+                        ModItems.UPGRADE_ALLOY.get(),
+                        0.35F,
+                        200
+                )
+                .unlockedBy("has_upgrade_alloy_blend", this.has(ModItems.UPGRADE_ALLOY_BLEND.get()))
                 .save(this.output);
 
-        this.shaped(RecipeCategory.MISC, ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get())
-                .pattern("PSP")
-                .pattern("PCP")
-                .pattern("PSP")
-                .define('C', BobbyChestTags.CHEST_ITEMS)
-                .define('P', Items.PAPER)
-                .define('S', Items.STICK)
-                .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
-                .save(this.output);
+        SimpleCookingRecipeBuilder.blasting(
+                        Ingredient.of(ModItems.UPGRADE_ALLOY_BLEND.get()),
+                        RecipeCategory.MISC,
+                        CookingBookCategory.MISC,
+                        ModItems.UPGRADE_ALLOY.get(),
+                        0.35F,
+                        100
+                )
+                .unlockedBy("has_upgrade_alloy_blend", this.has(ModItems.UPGRADE_ALLOY_BLEND.get()))
+                .save(this.output, "bobbychests:upgrade_alloy_from_blasting");
 
-        this.shaped(RecipeCategory.MISC, ModItems.RETAIN_ITEMS_UPGRADE_CARD.get())
-                .pattern("PSP")
-                .pattern("BCB")
-                .pattern("PSP")
-                .define('C', BobbyChestTags.CHEST_ITEMS)
+        this.shaped(RecipeCategory.MISC, ModItems.BLANK_UPGRADE_CARD.get())
+                .pattern("PRP")
+                .pattern("PAP")
+                .pattern("PRP")
+                .define('A', ModItems.UPGRADE_ALLOY.get())
                 .define('P', Items.PAPER)
-                .define('S', Items.STRING)
-                .define('B', Items.BUNDLE)
-                .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
+                .define('R', Items.REDSTONE)
+                .unlockedBy("has_upgrade_alloy", this.has(ModItems.UPGRADE_ALLOY.get()))
                 .save(this.output);
 
         this.shaped(RecipeCategory.MISC, ModItems.LOCK_UPGRADE_CARD.get())
-                .pattern("PIP")
-                .pattern("PCP")
-                .pattern("PPP")
-                .define('C', BobbyChestTags.CHEST_ITEMS)
-                .define('P', Items.PAPER)
-                .define('I', Items.IRON_NUGGET)
-                .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
+                .pattern(" I ")
+                .pattern("IBI")
+                .pattern(" I ")
+                .define('B', ModItems.BLANK_UPGRADE_CARD.get())
+                .define('I', Items.IRON_INGOT)
+                .unlockedBy("has_blank_upgrade_card", this.has(ModItems.BLANK_UPGRADE_CARD.get()))
+                .save(this.output);
+
+        this.shaped(RecipeCategory.MISC, ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get())
+                .pattern("RCR")
+                .pattern("HBH")
+                .pattern("RCR")
+                .define('B', ModItems.BLANK_UPGRADE_CARD.get())
+                .define('C', Items.COMPARATOR)
+                .define('H', Items.HOPPER)
+                .define('R', Items.REDSTONE)
+                .unlockedBy("has_blank_upgrade_card", this.has(ModItems.BLANK_UPGRADE_CARD.get()))
+                .save(this.output);
+
+        this.shaped(RecipeCategory.MISC, ModItems.VOID_UPGRADE_CARD.get())
+                .pattern("OMO")
+                .pattern("RBR")
+                .pattern("OMO")
+                .define('B', ModItems.BLANK_UPGRADE_CARD.get())
+                .define('M', Blocks.MAGMA_BLOCK)
+                .define('O', Items.OBSIDIAN)
+                .define('R', Items.REDSTONE)
+                .unlockedBy("has_blank_upgrade_card", this.has(ModItems.BLANK_UPGRADE_CARD.get()))
+                .save(this.output);
+
+        this.shaped(RecipeCategory.MISC, ModItems.RETAIN_ITEMS_UPGRADE_CARD.get())
+                .pattern("EDE")
+                .pattern("UBU")
+                .pattern("EDE")
+                .define('B', ModItems.BLANK_UPGRADE_CARD.get())
+                .define('D', Items.DIAMOND)
+                .define('E', Items.ENDER_PEARL)
+                .define('U', Items.BUNDLE)
+                .unlockedBy("has_blank_upgrade_card", this.has(ModItems.BLANK_UPGRADE_CARD.get()))
+                .save(this.output);
+
+        this.shaped(RecipeCategory.MISC, ModItems.NETWORKING_UPGRADE_CARD.get())
+                .pattern("EGE")
+                .pattern("CBC")
+                .pattern("RGR")
+                .define('B', ModItems.BLANK_UPGRADE_CARD.get())
+                .define('C', Items.COMPARATOR)
+                .define('E', Items.ENDER_PEARL)
+                .define('G', Items.GOLD_INGOT)
+                .define('R', Items.REDSTONE)
+                .unlockedBy("has_blank_upgrade_card", this.has(ModItems.BLANK_UPGRADE_CARD.get()))
                 .save(this.output);
 
         this.shaped(RecipeCategory.MISC, ModItems.DEEP_STORAGE_UPGRADE_CARD.get())
-                .pattern("PMP")
-                .pattern("PDP")
-                .pattern("PMP")
-                .define('P', Items.PAPER)
-                .define('D', ModBlocks.DIRT_CHEST.get())
-                .define('M', Blocks.CHEST)
-                .unlockedBy("has_dirt_chest", this.has(ModBlocks.DIRT_CHEST.get()))
+                .pattern("ODO")
+                .pattern("CBC")
+                .pattern("ODO")
+                .define('B', ModItems.BLANK_UPGRADE_CARD.get())
+                .define('C', Blocks.BARREL)
+                .define('D', Items.DIAMOND)
+                .define('O', Items.OBSIDIAN)
+                .unlockedBy("has_blank_upgrade_card", this.has(ModItems.BLANK_UPGRADE_CARD.get()))
                 .save(this.output);
     }
 

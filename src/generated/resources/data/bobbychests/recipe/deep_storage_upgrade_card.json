@@ -2,14 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "D": "bobbychests:dirt_chest",
-    "M": "minecraft:chest",
-    "P": "minecraft:paper"
+    "B": "bobbychests:blank_upgrade_card",
+    "C": "minecraft:barrel",
+    "D": "minecraft:diamond",
+    "O": "minecraft:obsidian"
   },
   "pattern": [
-    "PMP",
-    "PDP",
-    "PMP"
+    "ODO",
+    "CBC",
+    "ODO"
   ],
   "result": {
     "id": "bobbychests:deep_storage_upgrade_card"

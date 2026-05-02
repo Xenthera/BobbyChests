@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": "bobbychests:upgrade_alloy",
+    "P": "minecraft:paper",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "PRP",
+    "PAP",
+    "PRP"
+  ],
+  "result": {
+    "id": "bobbychests:blank_upgrade_card"
+  }
+}

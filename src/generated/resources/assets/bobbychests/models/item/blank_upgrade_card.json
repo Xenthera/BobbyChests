@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "bobbychests:item/blank_upgrade_card"
+  }
+}

@@ -12,6 +12,9 @@ public final class BobbyChestLanguageProvider extends LanguageProvider {
     @Override
     protected void addTranslations() {
         this.add("itemGroup.bobbychests", "Bobby Chests");
+        this.add("item.bobbychests.upgrade_alloy_blend", "Upgrade Alloy Blend");
+        this.add("item.bobbychests.upgrade_alloy", "Upgrade Alloy");
+        this.add("item.bobbychests.blank_upgrade_card", "Blank Upgrade Card");
         this.add("item.bobbychests.networking_upgrade_card", "Networking Upgrade");
         this.add("item.bobbychests.infinite_upgrade_card", "Creative Infinite Upgrade");
         this.add("item.bobbychests.void_upgrade_card", "Void Upgrade");

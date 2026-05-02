@@ -1,12 +1,12 @@
 {
-  "name": "Lock Upgrade Card",
+  "name": "Lock Upgrade",
   "icon": "bobbychests:lock_upgrade_card",
   "sortnum": 6,
   "category": "bobbychests:upgrade_cards",
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Lock Upgrade Card adds a lock toggle to the chest screen when installed in any upgrade slot.$(br2)Use the toggle to lock or unlock the chest. While locked, access is limited to the user who locked it. Removing the card from a locked chest's upgrade slot unlocks it."
+      "text": "The Lock Upgrade adds a lock toggle to the chest screen when installed in any upgrade slot.$(br2)Use the toggle to lock or unlock the chest. While locked, access is limited to the user who locked it. Removing the upgrade from a locked chest's upgrade slot unlocks it.$(br2)This is the cheapest finished upgrade and is crafted from a Blank Upgrade Card with iron."
     },
     {
       "type": "patchouli:crafting",

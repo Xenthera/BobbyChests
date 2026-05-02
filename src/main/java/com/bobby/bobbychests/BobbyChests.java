@@ -47,6 +47,9 @@ public class BobbyChests {
                 output.accept(ModBlocks.DIAMOND_CHEST.get());
                 output.accept(ModBlocks.EMERALD_CHEST.get());
                 output.accept(ModBlocks.NETHERITE_CHEST.get());
+                output.accept(ModItems.UPGRADE_ALLOY_BLEND.get());
+                output.accept(ModItems.UPGRADE_ALLOY.get());
+                output.accept(ModItems.BLANK_UPGRADE_CARD.get());
                 output.accept(ModItems.NETWORKING_UPGRADE_CARD.get());
                 output.accept(ModItems.INFINITE_UPGRADE_CARD.get());
                 output.accept(ModItems.VOID_UPGRADE_CARD.get());

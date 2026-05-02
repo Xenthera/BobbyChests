@@ -1,12 +1,12 @@
 {
-  "name": "Deep Storage Upgrade Card",
+  "name": "Deep Storage Upgrade",
   "icon": "bobbychests:deep_storage_upgrade_card",
   "sortnum": 7,
   "category": "bobbychests:upgrade_cards",
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Deep Storage Upgrade Card turns each slot into a deep-storage slot that can hold a virtually unlimited amount of one stackable item type."
+      "text": "The Deep Storage Upgrade turns each slot into a deep-storage slot that can hold a virtually unlimited amount of one stackable item type.$(br2)As the strongest craftable storage upgrade, it builds on a Blank Upgrade Card with barrels, obsidian, and diamonds."
     },
     {
       "type": "patchouli:crafting",

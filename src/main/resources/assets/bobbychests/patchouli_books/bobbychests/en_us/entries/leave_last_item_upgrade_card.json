@@ -1,12 +1,12 @@
 {
-  "name": "Leave-Last Upgrade Card",
+  "name": "Leave-Last Upgrade",
   "icon": "bobbychests:leave_last_item_upgrade_card",
   "sortnum": 4,
   "category": "bobbychests:upgrade_cards",
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Leave-Last Upgrade Card prevents automation from taking the last item in a slot.$(br2)Pipes and other automation can extract down to 1 item, but not below. Players can still take the last item normally."
+      "text": "The Leave-Last Upgrade prevents automation from taking the last item in a slot.$(br2)Pipes and other automation can extract down to 1 item, but not below. Players can still take the last item normally.$(br2)This automation-focused upgrade builds on a Blank Upgrade Card with hoppers, comparators, and redstone."
     },
     {
       "type": "patchouli:crafting",

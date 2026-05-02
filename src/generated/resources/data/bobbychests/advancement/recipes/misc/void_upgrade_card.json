@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_bobby_chest": {
+    "has_blank_upgrade_card": {
       "conditions": {
         "items": [
           {
-            "items": "#bobbychests:chests"
+            "items": "bobbychests:blank_upgrade_card"
           }
         ]
       },
@@ -21,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_bobby_chest"
+      "has_blank_upgrade_card"
     ]
   ],
   "rewards": {

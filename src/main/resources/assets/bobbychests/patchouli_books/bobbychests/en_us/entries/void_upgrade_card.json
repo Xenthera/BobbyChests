@@ -1,12 +1,12 @@
 {
-  "name": "Void Upgrade Card",
+  "name": "Void Upgrade",
   "icon": "bobbychests:void_upgrade_card",
   "sortnum": 3,
   "category": "bobbychests:upgrade_cards",
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Void Upgrade Card deletes excess items when the chest has no room.$(br2)Automation inserts that cannot fit will be voided instead of rejected, and shift-clicking into a full chest will discard the remainder."
+      "text": "The Void Upgrade deletes excess items when the chest has no room.$(br2)Automation inserts that cannot fit will be voided instead of rejected, and shift-clicking into a full chest will discard the remainder.$(br2)This upgrade builds on a Blank Upgrade Card with obsidian, magma, and redstone."
     },
     {
       "type": "patchouli:crafting",

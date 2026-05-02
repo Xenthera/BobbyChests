@@ -33,7 +33,10 @@ public final class BobbyChestAssetProvider implements DataProvider {
             futures.add(DataProvider.saveStable(output, itemDefinition(chest), this.itemDefinitionPathProvider.json(id)));
         }
 
-        // Upgrade card item models (keep in datagen; no hand-authored resources).
+        // Upgrade component and card item models (keep generated JSON in datagen; textures are source assets).
+        futures.addAll(upgradeCardAssets(output, "upgrade_alloy_blend", "upgrade_alloy_blend"));
+        futures.addAll(upgradeCardAssets(output, "upgrade_alloy", "upgrade_alloy"));
+        futures.addAll(upgradeCardAssets(output, "blank_upgrade_card", "blank_upgrade_card"));
         futures.addAll(upgradeCardAssets(output, "networking_upgrade_card", "networking_upgrade_card"));
         futures.addAll(upgradeCardAssets(output, "infinite_upgrade_card", "infinite_upgrade_card"));
         futures.addAll(upgradeCardAssets(output, "void_upgrade_card", "void_upgrade_card"));

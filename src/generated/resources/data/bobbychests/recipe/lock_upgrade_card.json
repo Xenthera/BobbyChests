@@ -2,14 +2,13 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "C": "#bobbychests:chests",
-    "I": "minecraft:iron_nugget",
-    "P": "minecraft:paper"
+    "B": "bobbychests:blank_upgrade_card",
+    "I": "minecraft:iron_ingot"
   },
   "pattern": [
-    "PIP",
-    "PCP",
-    "PPP"
+    " I ",
+    "IBI",
+    " I "
   ],
   "result": {
     "id": "bobbychests:lock_upgrade_card"

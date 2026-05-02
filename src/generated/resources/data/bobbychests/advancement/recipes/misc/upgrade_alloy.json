@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "bobbychests:upgrade_alloy"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    },
+    "has_upgrade_alloy_blend": {
+      "conditions": {
+        "items": [
+          {
+            "items": "bobbychests:upgrade_alloy_blend"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_upgrade_alloy_blend"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "bobbychests:upgrade_alloy"
+    ]
+  }
+}

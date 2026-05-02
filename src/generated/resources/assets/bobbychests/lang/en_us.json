@@ -18,12 +18,15 @@
   "container.bobbychests.iron_chest": "Iron Chest",
   "container.bobbychests.netherite_chest": "Netherite Chest",
   "container.bobbychests.wooden_chest": "Wooden Chest",
+  "item.bobbychests.blank_upgrade_card": "Blank Upgrade Card",
   "item.bobbychests.deep_storage_upgrade_card": "Deep Storage Upgrade",
   "item.bobbychests.infinite_upgrade_card": "Creative Infinite Upgrade",
   "item.bobbychests.leave_last_item_upgrade_card": "Leave-Last Upgrade",
   "item.bobbychests.lock_upgrade_card": "Lock Upgrade",
   "item.bobbychests.networking_upgrade_card": "Networking Upgrade",
   "item.bobbychests.retain_items_upgrade_card": "Retain Items Upgrade",
+  "item.bobbychests.upgrade_alloy": "Upgrade Alloy",
+  "item.bobbychests.upgrade_alloy_blend": "Upgrade Alloy Blend",
   "item.bobbychests.void_upgrade_card": "Void Upgrade",
   "itemGroup.bobbychests": "Bobby Chests"
 }

@@ -2,14 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "C": "#bobbychests:chests",
+    "B": "bobbychests:blank_upgrade_card",
+    "M": "minecraft:magma_block",
     "O": "minecraft:obsidian",
-    "P": "minecraft:paper"
+    "R": "minecraft:redstone"
   },
   "pattern": [
-    "PPP",
-    "PCP",
-    "POP"
+    "OMO",
+    "RBR",
+    "OMO"
   ],
   "result": {
     "id": "bobbychests:void_upgrade_card"

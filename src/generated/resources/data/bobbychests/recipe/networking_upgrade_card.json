@@ -2,13 +2,16 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "C": "#bobbychests:chests",
-    "P": "minecraft:paper"
+    "B": "bobbychests:blank_upgrade_card",
+    "C": "minecraft:comparator",
+    "E": "minecraft:ender_pearl",
+    "G": "minecraft:gold_ingot",
+    "R": "minecraft:redstone"
   },
   "pattern": [
-    "PPP",
-    "PCP",
-    "PPP"
+    "EGE",
+    "CBC",
+    "RGR"
   ],
   "result": {
     "id": "bobbychests:networking_upgrade_card"

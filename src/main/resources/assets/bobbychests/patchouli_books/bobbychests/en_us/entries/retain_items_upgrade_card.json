@@ -1,12 +1,12 @@
 {
-  "name": "Retain Items Upgrade Card",
+  "name": "Retain Items Upgrade",
   "icon": "bobbychests:retain_items_upgrade_card",
   "sortnum": 5,
   "category": "bobbychests:upgrade_cards",
   "pages": [
     {
       "type": "patchouli:text",
-      "text": "The Retain Items Upgrade Card causes a chest to drop itself with its inventory and upgrade slots preserved."
+      "text": "The Retain Items Upgrade causes a chest to drop itself with its inventory and upgrade slots preserved.$(br2)Because this preserves stored items through block break, it is one of the stronger upgrades and uses a Blank Upgrade Card with bundles, diamonds, and ender pearls."
     },
     {
       "type": "patchouli:crafting",

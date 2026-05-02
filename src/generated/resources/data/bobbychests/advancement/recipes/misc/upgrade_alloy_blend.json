@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_blank_upgrade_card": {
+    "has_redstone": {
       "conditions": {
         "items": [
           {
-            "items": "bobbychests:blank_upgrade_card"
+            "items": "minecraft:redstone"
           }
         ]
       },
@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "bobbychests:deep_storage_upgrade_card"
+        "recipe": "bobbychests:upgrade_alloy_blend"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
@@ -21,12 +21,12 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_blank_upgrade_card"
+      "has_redstone"
     ]
   ],
   "rewards": {
     "recipes": [
-      "bobbychests:deep_storage_upgrade_card"
+      "bobbychests:upgrade_alloy_blend"
     ]
   }
 }

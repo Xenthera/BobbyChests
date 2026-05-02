@@ -2,15 +2,15 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "B": "minecraft:bundle",
-    "C": "#bobbychests:chests",
-    "P": "minecraft:paper",
-    "S": "minecraft:string"
+    "B": "bobbychests:blank_upgrade_card",
+    "D": "minecraft:diamond",
+    "E": "minecraft:ender_pearl",
+    "U": "minecraft:bundle"
   },
   "pattern": [
-    "PSP",
-    "BCB",
-    "PSP"
+    "EDE",
+    "UBU",
+    "EDE"
   ],
   "result": {
     "id": "bobbychests:retain_items_upgrade_card"

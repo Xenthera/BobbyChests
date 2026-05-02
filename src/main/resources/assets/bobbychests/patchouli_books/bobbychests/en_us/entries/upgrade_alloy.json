@@ -1,0 +1,21 @@
+{
+  "name": "Upgrade Alloy",
+  "icon": "bobbychests:upgrade_alloy",
+  "sortnum": -1,
+  "category": "bobbychests:upgrade_cards",
+  "extra_recipe_mappings": {
+    "bobbychests:upgrade_alloy": 1
+  },
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Upgrade Alloy is the refined component used to craft Blank Upgrade Cards.$(br2)Smelt Upgrade Alloy Blend in a furnace, or process it faster in a blast furnace."
+    },
+    {
+      "type": "patchouli:smelting",
+      "title": "Upgrade Alloy",
+      "recipe": "bobbychests:upgrade_alloy",
+      "recipe2": "bobbychests:upgrade_alloy_from_blasting"
+    }
+  ]
+}

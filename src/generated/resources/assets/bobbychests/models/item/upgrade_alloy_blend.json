@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "bobbychests:item/upgrade_alloy_blend"
+  }
+}
