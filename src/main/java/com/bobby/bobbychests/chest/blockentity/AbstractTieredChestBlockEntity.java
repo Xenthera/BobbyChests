@@ -4,8 +4,6 @@ import com.bobby.bobbychests.chest.storage.ChestContentSorter;
 import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.chest.storage.DeepStorageStacks;
 import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
-import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
-import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.chest.ChestTier;
@@ -16,19 +14,15 @@ import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.ContainerHelper;
-import net.minecraft.world.Container;
 import net.minecraft.world.Containers;
 import net.minecraft.world.LockCode;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
-import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.protocol.Packet;
@@ -39,7 +33,6 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -59,87 +52,19 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     private final ResourceHandler<ItemResource> itemResourceHandler = new RoutedChestItemResourceHandler(this);
     private final ResourceHandler<ItemResource> voidingItemResourceHandler = new VoidingItemResourceHandler(this, this.itemResourceHandler);
     private final ChestUpgradeManager upgradeManager = new ChestUpgradeManager(this);
-    private boolean savingLocalItems;
+    private boolean savingLocalInventory;
 
-    /** Set when upgrades were hydrated from disk while this BE had no level yet; drained in {@link #setLevel}. */
-    private boolean reconcileStorageModeAfterLevel;
+    // Loading can happen before the block entity is attached to a level. In that case,
+    // wait until setLevel before forcing storage mode to match the installed upgrades.
+    private boolean reconcileStorageModeWhenLevelAvailable;
+
     protected AbstractTieredChestBlockEntity(BlockEntityType<? extends AbstractTieredChestBlockEntity> type, BlockPos worldPosition, BlockState blockState, ChestTier tier) {
         super(type, worldPosition, blockState);
         this.tier = tier;
         this.setItems(NonNullList.withSize(27 * 2, ItemStack.EMPTY));
 
-        // ChestBlockEntity's default openersCounter only recognizes vanilla ChestMenu.
-        // Replace it so our custom menu keeps the lid open.
-        this.openersCounter = new ContainerOpenersCounter() {
-            @Override
-            public boolean isOwnContainer(Player player) {
-                if (!(player.containerMenu instanceof AbstractChestMenu menu)) {
-                    return false;
-                }
-                Container c = menu.getContainer();
-                if (c == AbstractTieredChestBlockEntity.this) {
-                    return true;
-                }
-                return c instanceof RoutedChestContainer routed && routed.getChest() == AbstractTieredChestBlockEntity.this;
-            }
-
-            @Override
-            protected void onOpen(Level level, BlockPos pos, BlockState state) {
-                if (state.getBlock() instanceof ChestBlock chestBlock) {
-                    float pitch = level.getRandom().nextFloat() * 0.1F + 0.9F;
-                    level.playSound(
-                            null,
-                            pos,
-                            chestBlock.getOpenChestSound(),
-                            SoundSource.BLOCKS,
-                            0.5F,
-                            pitch);
-                }
-            }
-
-            @Override
-            protected void onClose(Level level, BlockPos pos, BlockState state) {
-                if (AbstractTieredChestBlockEntity.this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
-                    GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
-                    GlobalTieredChestData.StorageKey key = data.keyForChest(AbstractTieredChestBlockEntity.this);
-                    if (data.getPublicOpenViewerCount(key) > 0) {
-                        return;
-                    }
-                }
-                if (state.getBlock() instanceof ChestBlock chestBlock) {
-                    float pitch = level.getRandom().nextFloat() * 0.1F + 0.9F;
-                    level.playSound(
-                            null,
-                            pos,
-                            chestBlock.getCloseChestSound(),
-                            SoundSource.BLOCKS,
-                            0.5F,
-                            pitch);
-                }
-            }
-
-            @Override
-            protected void openerCountChanged(Level level, BlockPos pos, BlockState state, int oldCount, int newCount) {
-                if (AbstractTieredChestBlockEntity.this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
-                    GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
-                    GlobalTieredChestData.StorageKey key = data.keyForChest(AbstractTieredChestBlockEntity.this);
-                    int publicCount = data.getPublicOpenViewerCount(key);
-                    if (publicCount > 0) {
-                        AbstractTieredChestBlockEntity.this.signalOpenCount(level, pos, state, oldCount, publicCount);
-                        return;
-                    }
-                }
-                AbstractTieredChestBlockEntity.this.signalOpenCount(level, pos, state, oldCount, newCount);
-                if (AbstractTieredChestBlockEntity.this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel && oldCount <= 0 && newCount > 0) {
-                    GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
-                    GlobalTieredChestData.StorageKey key = data.keyForChest(AbstractTieredChestBlockEntity.this);
-                    // Private (non-public) keys don't use the shared viewer-count mechanism.
-                    if (data.getPublicOpenViewerCount(key) <= 0) {
-                        data.toggleObserverSignal(serverLevel, key);
-                    }
-                }
-            }
-        };
+        // Our menus wrap the chest in RoutedChestContainer, so vanilla's counter would not see them.
+        this.openersCounter = new TieredChestOpenersCounter(this);
     }
 
     @Override
@@ -204,10 +129,6 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         }
     }
 
-    /**
-     * GLOBAL vs LOCAL tracks pooled storage eligibility: it follows the networking upgrade card if present,
-     * and falls back to LOCAL when no such card occupies any upgrade slot.
-     */
     private void reconcileStorageModeWithUpgrades() {
         if (!(this.level instanceof ServerLevel)) {
             return;
@@ -220,10 +141,10 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         }
     }
 
-    private void finishUpgradeDrivenStorageReconcileAfterLoad() {
+    private void reconcileStorageModeAfterLoad() {
         Level lvl = this.getLevel();
         if (lvl == null) {
-            this.reconcileStorageModeAfterLevel = true;
+            this.reconcileStorageModeWhenLevelAvailable = true;
             return;
         }
         if (lvl instanceof ServerLevel && !lvl.isClientSide()) {
@@ -231,10 +152,6 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         }
     }
 
-    /**
-     * When channel / lock / owner changes, whether open {@link AbstractScrollableChestMenu}s for this chest should
-     * reset row scroll (tiers with a scrollable menu override to {@code true}).
-     */
     protected boolean shouldResetScrollableMenuOnStorageKeyChange() {
         return false;
     }
@@ -258,19 +175,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
             int openers = this.openersCounter.getOpenerCount();
 
             this.storageMode = nextMode;
-            this.setChanged();
-            this.requestClientUpdate();
-
-            GlobalTieredChestData.StorageKey newKey = this.getStorageMode() == ChestStorageMode.GLOBAL ? data.keyForChest(this) : null;
-            data.onChestKeyChangedWhileOpen(serverLevel, oldKey, newKey, openers);
-            if (this.getStorageMode() == ChestStorageMode.GLOBAL) {
-                data.registerOrUpdateChest(this);
-            } else {
-                data.unregisterChest(this);
-            }
-            if (this.shouldResetScrollableMenuOnStorageKeyChange()) {
-                AbstractScrollableChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
-            }
+            this.afterStorageIdentityChanged(serverLevel, data, oldKey, openers, true, false);
             return;
         }
 
@@ -285,6 +190,48 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         }
         BlockState state = this.getBlockState();
         level.sendBlockUpdated(this.getBlockPos(), state, state, 3);
+    }
+
+    void signalOpenCountFromCounter(Level level, BlockPos pos, BlockState state, int oldCount, int newCount) {
+        this.signalOpenCount(level, pos, state, oldCount, newCount);
+    }
+
+    private @Nullable GlobalTieredChestData.StorageKey currentGlobalStorageKey(GlobalTieredChestData data) {
+        return this.getStorageMode() == ChestStorageMode.GLOBAL ? data.keyForChest(this) : null;
+    }
+
+    private void updateGlobalRegistration(GlobalTieredChestData data) {
+        if (this.getStorageMode() == ChestStorageMode.GLOBAL) {
+            data.registerOrUpdateChest(this);
+        } else {
+            data.unregisterChest(this);
+        }
+    }
+
+    private void afterStorageIdentityChanged(
+            ServerLevel serverLevel,
+            GlobalTieredChestData data,
+            @Nullable GlobalTieredChestData.StorageKey oldKey,
+            int openers,
+            boolean updateRegistration,
+            boolean updateRegistrationBeforeOpeners) {
+        this.setChanged();
+        this.requestClientUpdate();
+
+        if (updateRegistration && updateRegistrationBeforeOpeners) {
+            this.updateGlobalRegistration(data);
+        }
+
+        GlobalTieredChestData.StorageKey newKey = this.currentGlobalStorageKey(data);
+        data.onChestKeyChangedWhileOpen(serverLevel, oldKey, newKey, openers);
+
+        if (updateRegistration && !updateRegistrationBeforeOpeners) {
+            this.updateGlobalRegistration(data);
+        }
+
+        if (this.shouldResetScrollableMenuOnStorageKeyChange()) {
+            AbstractScrollableChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
+        }
     }
 
     @Override
@@ -305,15 +252,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
             int openers = this.openersCounter.getOpenerCount();
 
             this.globalStorageId = clamped;
-            this.setChanged();
-            this.requestClientUpdate();
-            data.registerOrUpdateChest(this);
-
-            GlobalTieredChestData.StorageKey newKey = data.keyForChest(this);
-            data.onChestKeyChangedWhileOpen(serverLevel, oldKey, newKey, openers);
-            if (this.shouldResetScrollableMenuOnStorageKeyChange()) {
-                AbstractScrollableChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
-            }
+            this.afterStorageIdentityChanged(serverLevel, data, oldKey, openers, true, true);
             return;
         }
 
@@ -342,81 +281,11 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         return this.ownerUuid.equals(player.getUUID());
     }
 
-    /**
-     * NeoForge "transfer" capability exposure for pipes/automation.
-     */
     public @Nullable ResourceHandler<ItemResource> getItemResourceHandler(@Nullable Direction side) {
         if (this.getUpgradeManager().capabilities().canVoidWhenFull()) {
             return this.voidingItemResourceHandler;
         }
         return this.itemResourceHandler;
-    }
-
-    /**
-     * Pipe mods (e.g. Pipez) often won't attempt to transfer an item unless they can find an eligible destination slot
-     * (empty or matching). When the void upgrade is installed, we expose one extra "void sink" slot that always accepts
-     * inserts and discards them, so routing can proceed even when the chest is effectively full for that item.
-     */
-    private static final class VoidingItemResourceHandler implements ResourceHandler<ItemResource> {
-        private static final int SOFT_SLOT_CAP = 99;
-
-        private final AbstractTieredChestBlockEntity chest;
-        private final ResourceHandler<ItemResource> delegate;
-
-        private VoidingItemResourceHandler(AbstractTieredChestBlockEntity chest, ResourceHandler<ItemResource> delegate) {
-            this.chest = chest;
-            this.delegate = delegate;
-        }
-
-        private int voidSlotIndex() {
-            return this.delegate.size();
-        }
-
-        private static int capacity(ItemResource resource) {
-            return resource.isEmpty() ? SOFT_SLOT_CAP : Math.min(resource.getMaxStackSize(), SOFT_SLOT_CAP);
-        }
-
-        @Override
-        public int size() {
-            return this.delegate.size() + 1;
-        }
-
-        @Override
-        public ItemResource getResource(int slot) {
-            return slot == this.voidSlotIndex() ? ItemResource.EMPTY : this.delegate.getResource(slot);
-        }
-
-        @Override
-        public long getAmountAsLong(int slot) {
-            return slot == this.voidSlotIndex() ? 0L : this.delegate.getAmountAsLong(slot);
-        }
-
-        @Override
-        public long getCapacityAsLong(int slot, ItemResource resource) {
-            return slot == this.voidSlotIndex() ? capacity(resource) : this.delegate.getCapacityAsLong(slot, resource);
-        }
-
-        @Override
-        public boolean isValid(int slot, ItemResource resource) {
-            if (slot == this.voidSlotIndex()) {
-                return this.chest.getLevel() instanceof ServerLevel && this.chest.getUpgradeManager().capabilities().canVoidWhenFull();
-            }
-            return this.delegate.isValid(slot, resource);
-        }
-
-        @Override
-        public int insert(int slot, ItemResource resource, int amount, TransactionContext tx) {
-            if (slot == this.voidSlotIndex()) {
-                // Accept and discard.
-                return this.chest.getUpgradeManager().capabilities().canVoidWhenFull() ? amount : 0;
-            }
-            return this.delegate.insert(slot, resource, amount, tx);
-        }
-
-        @Override
-        public int extract(int slot, ItemResource resource, int amount, TransactionContext tx) {
-            return slot == this.voidSlotIndex() ? 0 : this.delegate.extract(slot, resource, amount, tx);
-        }
     }
 
     @Override
@@ -428,25 +297,13 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
 
             this.locked = locked;
             if (locked) {
-                // When taking the lock from an unlocked state, the locker becomes the owner.
                 if (actor != null) {
                     this.ownerUuid = actor.getUUID();
                 }
             } else {
-                // When unlocked, clear ownership so anyone can claim it again later.
                 this.ownerUuid = null;
             }
-            this.setChanged();
-            this.requestClientUpdate();
-            if (this.getStorageMode() == ChestStorageMode.GLOBAL) {
-                data.registerOrUpdateChest(this);
-            }
-
-            GlobalTieredChestData.StorageKey newKey = this.getStorageMode() == ChestStorageMode.GLOBAL ? data.keyForChest(this) : null;
-            data.onChestKeyChangedWhileOpen(serverLevel, oldKey, newKey, openers);
-            if (this.shouldResetScrollableMenuOnStorageKeyChange()) {
-                AbstractScrollableChestMenu.resetScrollForEveryoneUsingChest(serverLevel, this.getBlockPos());
-            }
+            this.afterStorageIdentityChanged(serverLevel, data, oldKey, openers, this.getStorageMode() == ChestStorageMode.GLOBAL, true);
             return;
         }
 
@@ -464,8 +321,8 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     @Override
     public void setLevel(Level level) {
         super.setLevel(level);
-        if (!level.isClientSide() && this.reconcileStorageModeAfterLevel && level instanceof ServerLevel) {
-            this.reconcileStorageModeAfterLevel = false;
+        if (!level.isClientSide() && this.reconcileStorageModeWhenLevelAvailable && level instanceof ServerLevel) {
+            this.reconcileStorageModeWhenLevelAvailable = false;
             this.reconcileStorageModeWithUpgrades();
         }
         if (this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
@@ -490,11 +347,10 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     }
 
     /**
-     * When a chest block item is placed, vanilla applies DataComponents.CONTAINER from the item onto the BE
-     * via ItemContainerContents.copyInto(getItems()). If the active route is global, that would overwrite
-     * every chest's storage with the item's (usually empty) container.
+     * Skip the vanilla container component on the server. A global chest item should not replace the shared
+     * inventory used by every chest on the same storage key.
      *
-     * We still apply custom name, lock, and seeded loot-table components so block-item metadata behaves normally.
+     * Name, vanilla lock, and loot table data are still safe to apply here.
      */
     @Override
     protected void applyImplicitComponents(DataComponentGetter getter) {
@@ -514,7 +370,9 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     @Override
     protected NonNullList<ItemStack> getItems() {
         Level level = this.getLevel();
-        if (!this.savingLocalItems && this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
+        // Vanilla inventory code calls this method directly. In global mode, server-side inventory changes
+        // must go to the shared storage list, except while saving this block entity's own local items.
+        if (!this.savingLocalInventory && this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
             return GlobalTieredChestData.get(serverLevel).getItemsForChest(this);
         }
         return this.localItems();
@@ -535,21 +393,18 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     }
 
     /**
-     * Creates block-entity NBT suitable for attaching to a dropped chest item when retain-items is enabled.
-     * <p>
-     * The returned tag stores a LOCAL snapshot of the chest's active route contents (GLOBAL or LOCAL) into the
-     * standard container item list, so on placement those items are restored as this chest's local/inactive stash.
+     * Creates the block-entity data for a retained chest drop.
+     *
+     * The item carries upgrades and settings, but its inventory is always this chest's local inventory.
+     * Shared global contents stay in GlobalTieredChestData.
      */
     public final TagValueOutput createRetainedDropTag(HolderLookup.Provider registries) {
-        // Start with our normal full metadata (includes upgrades, lock, owner, etc.).
         CompoundTag tag = this.saveWithFullMetadata(registries);
         TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, registries);
         output.store(tag);
 
-        // Replace the container item list with a LOCAL snapshot only.
-        // If the chest is currently using GLOBAL storage (networking card installed), we must not snapshot the shared
-        // global inventory into the dropped item, otherwise placing it back down can "clone" the global contents into
-        // the chest's local stash.
+        // Do not copy shared global storage into an item stack. Placing that item later would duplicate it
+        // into this chest's local inventory.
         NonNullList<ItemStack> local = this.localItems();
         int size = Math.min(this.getSlotCount(), local.size());
         NonNullList<ItemStack> snapshot = NonNullList.withSize(size, ItemStack.EMPTY);
@@ -572,22 +427,22 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         super.loadAdditional(input);
         this.ensureLocalItemsSize(this.getSlotCount());
         this.upgradeManager.load(input);
-        // Also used for client update packets (getUpdateTag), so keep these reads tolerant of missing keys.
+        // Client update packets can contain only part of the saved data.
         this.globalStorageId = input.getIntOr(TAG_GLOBAL_STORAGE_ID, 0);
         this.storageMode = input.getBooleanOr(TAG_STORAGE_MODE, false) ? ChestStorageMode.GLOBAL : ChestStorageMode.LOCAL;
         this.locked = input.getBooleanOr(TAG_LOCKED, false);
         String uuidStr = input.getStringOr(TAG_OWNER_UUID, "");
         this.ownerUuid = uuidStr.isEmpty() ? null : UUID.fromString(uuidStr);
-        this.finishUpgradeDrivenStorageReconcileAfterLoad();
+        this.reconcileStorageModeAfterLoad();
     }
 
     @Override
     protected void saveAdditional(ValueOutput output) {
-        this.savingLocalItems = true;
+        this.savingLocalInventory = true;
         try {
             super.saveAdditional(output);
         } finally {
-            this.savingLocalItems = false;
+            this.savingLocalInventory = false;
         }
 
         output.putInt(TAG_GLOBAL_STORAGE_ID, this.globalStorageId);
@@ -653,9 +508,8 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     }
 
     /**
-     * Hoppers and other automation call setItem/removeItem on this block entity, which only invokes
-     * .setChanged() here — not GlobalBobbyBaseChestData.markChanged(). Without that, the shared
-     * net.minecraft.world.level.saveddata.SavedData never becomes dirty and is not written on save, so a restart looks like a full reset.
+     * In global mode, item changes must also dirty GlobalTieredChestData. Otherwise the shared inventory
+     * can change in memory and never be written to disk.
      */
     @Override
     public void setChanged() {
@@ -675,8 +529,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     }
 
     /**
-     * Vanilla BaseContainerBlockEntity#clearContent does getItems().clear(). In global mode, that would wipe
-     * every chest on the same storage key.
+     * Vanilla clearContent calls getItems().clear(). In global mode that would clear the shared inventory.
      */
     @Override
     public void clearContent() {
@@ -687,15 +540,13 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     }
 
     /**
-     * In global mode, active contents stay in GlobalTieredChestData, but inactive local contents still belong
-     * to this specific block entity and must be dropped before the BE disappears.
+     * Breaking a global chest leaves the shared inventory alone. Only this block's local items are dropped.
      */
     @Override
     public void preRemoveSideEffects(BlockPos pos, BlockState state) {
         Level level = this.getLevel();
         if (level != null && !level.isClientSide() && this.upgradeManager.capabilities().canRetainItemsOnBreak()) {
-            // The chest item drop (via the block's getDrops override) carries a retained snapshot of both
-            // inventory and upgrades, so do not spill anything here.
+            // The dropped chest item already carries the retained data.
             return;
         }
         if (level != null && !level.isClientSide()) {
@@ -706,7 +557,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
             return;
         }
         if (level != null && !level.isClientSide() && this.canUseDeepStorage()) {
-            // Deep storage can hold massive counts; for now we discard all deep contents on break.
+            // Do not try to spill deep-storage counts into the world.
             NonNullList<ItemStack> active = this.getActiveItems();
             int size = Math.min(this.getSlotCount(), active.size());
             for (int i = 0; i < size; i++) {
