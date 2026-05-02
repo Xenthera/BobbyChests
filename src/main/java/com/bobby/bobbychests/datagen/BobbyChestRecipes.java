@@ -40,16 +40,6 @@ public final class BobbyChestRecipes extends RecipeProvider {
                 .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
                 .save(this.output);
 
-        this.shaped(RecipeCategory.MISC, ModItems.INFINITE_UPGRADE_CARD.get())
-                .pattern("PEP")
-                .pattern("ECE")
-                .pattern("PEP")
-                .define('C', BobbyChestTags.CHEST_ITEMS)
-                .define('E', Items.ENDER_PEARL)
-                .define('P', Items.PAPER)
-                .unlockedBy("has_bobby_chest", this.has(BobbyChestTags.CHEST_ITEMS))
-                .save(this.output);
-
         this.shaped(RecipeCategory.MISC, ModItems.VOID_UPGRADE_CARD.get())
                 .pattern("PPP")
                 .pattern("PCP")

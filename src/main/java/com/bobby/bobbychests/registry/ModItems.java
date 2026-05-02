@@ -2,6 +2,7 @@ package com.bobby.bobbychests.registry;
 
 import com.bobby.bobbychests.BobbyChests;
 import com.bobby.bobbychests.item.ChestUpgradeCardItem;
+import com.bobby.bobbychests.item.CreativeInfiniteUpgradeCardItem;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -13,8 +14,8 @@ public class ModItems {
     public static final DeferredItem<ChestUpgradeCardItem> NETWORKING_UPGRADE_CARD =
             ITEMS.registerItem("networking_upgrade_card", ChestUpgradeCardItem::new);
 
-    public static final DeferredItem<ChestUpgradeCardItem> INFINITE_UPGRADE_CARD =
-            ITEMS.registerItem("infinite_upgrade_card", ChestUpgradeCardItem::new);
+    public static final DeferredItem<CreativeInfiniteUpgradeCardItem> INFINITE_UPGRADE_CARD =
+            ITEMS.registerItem("infinite_upgrade_card", CreativeInfiniteUpgradeCardItem::new);
 
     public static final DeferredItem<ChestUpgradeCardItem> VOID_UPGRADE_CARD =
             ITEMS.registerItem("void_upgrade_card", ChestUpgradeCardItem::new);
