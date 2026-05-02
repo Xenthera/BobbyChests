@@ -12,13 +12,13 @@ public final class BobbyChestLanguageProvider extends LanguageProvider {
     @Override
     protected void addTranslations() {
         this.add("itemGroup.bobbychests", "Bobby Chests");
-        this.add("item.bobbychests.networking_upgrade_card", "Networking Upgrade Card");
-        this.add("item.bobbychests.infinite_upgrade_card", "Creative Infinite Upgrade Card");
-        this.add("item.bobbychests.void_upgrade_card", "Void Upgrade Card");
-        this.add("item.bobbychests.leave_last_item_upgrade_card", "Leave-Last Upgrade Card");
-        this.add("item.bobbychests.retain_items_upgrade_card", "Retain Items Upgrade Card");
-        this.add("item.bobbychests.lock_upgrade_card", "Lock Upgrade Card");
-        this.add("item.bobbychests.deep_storage_upgrade_card", "Deep Storage Upgrade Card");
+        this.add("item.bobbychests.networking_upgrade_card", "Networking Upgrade");
+        this.add("item.bobbychests.infinite_upgrade_card", "Creative Infinite Upgrade");
+        this.add("item.bobbychests.void_upgrade_card", "Void Upgrade");
+        this.add("item.bobbychests.leave_last_item_upgrade_card", "Leave-Last Upgrade");
+        this.add("item.bobbychests.retain_items_upgrade_card", "Retain Items Upgrade");
+        this.add("item.bobbychests.lock_upgrade_card", "Lock Upgrade");
+        this.add("item.bobbychests.deep_storage_upgrade_card", "Deep Storage Upgrade");
 
         for (BobbyChestData.ChestDefinition chest : BobbyChestData.CHESTS) {
             this.add(chest.block().get(), chest.displayName());
