@@ -2,7 +2,6 @@ package com.bobby.bobbychests.chest.menu.dirt;
 
 import com.bobby.bobbychests.registry.ModMenus;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
-import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -23,7 +22,7 @@ public final class DirtChestMenu extends AbstractChestMenu {
     private static final int SLOT_Y = 18;
 
     public static DirtChestMenu clientConstructor(int syncId, Inventory playerInventory) {
-        return new DirtChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), new SimpleContainer(ChestUpgradeManager.SLOT_COUNT), BlockPos.ZERO, 0, false, null, true, ChestTier.DIRT.maxChannelId());
+        return new DirtChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), new SimpleContainer(ChestTier.DIRT.upgradeSlotCount()), BlockPos.ZERO, 0, false, null, true, ChestTier.DIRT.maxChannelId());
     }
 
     public static DirtChestMenu clientConstructor(int syncId, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
@@ -32,7 +31,7 @@ public final class DirtChestMenu extends AbstractChestMenu {
                 syncId,
                 playerInventory,
                 new SimpleContainer(CHEST_SLOTS),
-                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
+                new SimpleContainer(ChestTier.DIRT.upgradeSlotCount()),
                 p.chestPos(),
                 p.initialChestId(),
                 p.initialLocked(),

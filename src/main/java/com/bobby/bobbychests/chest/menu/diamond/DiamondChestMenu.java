@@ -2,7 +2,6 @@ package com.bobby.bobbychests.chest.menu.diamond;
 
 import com.bobby.bobbychests.registry.ModMenus;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
-import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 
 import com.bobby.bobbychests.chest.ChestTier;
 import net.minecraft.core.BlockPos;
@@ -23,7 +22,7 @@ public final class DiamondChestMenu extends AbstractChestMenu {
                 syncId,
                 playerInventory,
                 new SimpleContainer(CHEST_SLOTS),
-                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
+                new SimpleContainer(ChestTier.DIAMOND.upgradeSlotCount()),
                 BlockPos.ZERO,
                 0,
                 false,
@@ -38,7 +37,7 @@ public final class DiamondChestMenu extends AbstractChestMenu {
                 syncId,
                 playerInventory,
                 new SimpleContainer(CHEST_SLOTS),
-                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
+                new SimpleContainer(ChestTier.DIAMOND.upgradeSlotCount()),
                 p.chestPos(),
                 p.initialChestId(),
                 p.initialLocked(),

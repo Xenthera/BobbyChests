@@ -4,7 +4,6 @@ import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.registry.ModMenus;
 import com.bobby.bobbychests.chest.ChestTier;
-import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.Container;
@@ -24,7 +23,7 @@ public final class NetheriteChestMenu extends AbstractScrollableChestMenu {
                 syncId,
                 playerInventory,
                 new SimpleContainer(STORAGE_SLOTS),
-                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
+                new SimpleContainer(ChestTier.NETHERITE.upgradeSlotCount()),
                 BlockPos.ZERO,
                 0,
                 false,
@@ -39,7 +38,7 @@ public final class NetheriteChestMenu extends AbstractScrollableChestMenu {
                 syncId,
                 playerInventory,
                 new SimpleContainer(STORAGE_SLOTS),
-                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
+                new SimpleContainer(ChestTier.NETHERITE.upgradeSlotCount()),
                 p.chestPos(),
                 p.initialChestId(),
                 p.initialLocked(),

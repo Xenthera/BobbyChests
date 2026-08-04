@@ -1,5 +1,6 @@
 package com.bobby.bobbychests.chest.upgrade;
 
+import com.bobby.bobbychests.chest.ChestTier;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.datagen.BobbyChestTags;
 import com.bobby.bobbychests.item.ChestUpgradeCardItem;
@@ -16,14 +17,18 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
 public final class ChestUpgradeManager {
-    public static final int SLOT_COUNT = 3;
+    /** @deprecated Use {@link ChestTier#MAX_UPGRADE_SLOTS} / {@link ChestTier#upgradeSlotCount()}. */
+    @Deprecated
+    public static final int SLOT_COUNT = ChestTier.MAX_UPGRADE_SLOTS;
+
     private static final String TAG_UPGRADES = "upgrades";
 
     private final AbstractTieredChestBlockEntity chest;
-    private final NonNullList<ItemStack> stacks = NonNullList.withSize(SLOT_COUNT, ItemStack.EMPTY);
+    private final NonNullList<ItemStack> stacks;
 
     public ChestUpgradeManager(AbstractTieredChestBlockEntity chest) {
         this.chest = chest;
+        this.stacks = NonNullList.withSize(chest.getTier().upgradeSlotCount(), ItemStack.EMPTY);
     }
 
     public AbstractTieredChestBlockEntity getChest() {
@@ -31,7 +36,7 @@ public final class ChestUpgradeManager {
     }
 
     public int getSlotCount() {
-        return SLOT_COUNT;
+        return this.stacks.size();
     }
 
     public NonNullList<ItemStack> getStacks() {
@@ -109,7 +114,26 @@ public final class ChestUpgradeManager {
 
     public void load(ValueInput input) {
         ValueInput child = input.childOrEmpty(TAG_UPGRADES);
-        ContainerHelper.loadAllItems(child, this.stacks);
+        NonNullList<ItemStack> loaded = NonNullList.withSize(ChestTier.MAX_UPGRADE_SLOTS, ItemStack.EMPTY);
+        ContainerHelper.loadAllItems(child, loaded);
+
+        for (int i = 0; i < this.stacks.size(); i++) {
+            this.stacks.set(i, ItemStack.EMPTY);
+        }
+
+        Level level = this.chest.getLevel();
+        BlockPos pos = this.chest.getBlockPos();
+        for (int i = 0; i < loaded.size(); i++) {
+            ItemStack stack = loaded.get(i);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            if (i < this.stacks.size()) {
+                this.stacks.set(i, stack);
+            } else if (level != null && !level.isClientSide()) {
+                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
+            }
+        }
     }
 
     public void save(ValueOutput output) {

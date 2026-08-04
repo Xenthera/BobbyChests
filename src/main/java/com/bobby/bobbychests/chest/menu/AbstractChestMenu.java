@@ -1,11 +1,13 @@
 package com.bobby.bobbychests.chest.menu;
 
+import com.bobby.bobbychests.chest.ChestTier;
 import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.chest.storage.DeepStorageStacks;
 import com.bobby.bobbychests.registry.ModItems;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -13,11 +15,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -25,10 +28,24 @@ import java.util.UUID;
  * Concrete tiers control slot layout and GUI dimensions.
  */
 public abstract class AbstractChestMenu extends AbstractContainerMenu {
-    public static final int UPGRADE_SLOT_COUNT = 3;
+    /** @deprecated Use {@link ChestTier#MAX_UPGRADE_SLOTS} / {@link #getUpgradeSlotCount()}. */
+    @Deprecated
+    public static final int UPGRADE_SLOT_COUNT = ChestTier.MAX_UPGRADE_SLOTS;
+    /** @deprecated Unused; strip width is no longer part of imageWidth. */
+    @Deprecated
     public static final int UPGRADE_STRIP_GAP_PX = 10;
+    @Deprecated
     public static final int UPGRADE_STRIP_PADDING_PX = 4;
+    @Deprecated
     public static final int UPGRADE_STRIP_WIDTH_PX = UPGRADE_STRIP_GAP_PX + (UPGRADE_STRIP_PADDING_PX * 2) + 18;
+
+    public static final int DISABLED_SLOT_POS = -9999;
+
+    /** Keep in sync with {@link com.bobby.bobbychests.client.chest.screen.tab.UpgradeSlotsTab}. */
+    public static final int UPGRADE_TAB_PAD = 8;
+    public static final int UPGRADE_TAB_CONTENT_TOP = 28;
+    public static final int UPGRADE_TAB_ORIGIN_Y = 4;
+    public static final int UPGRADE_SLOT_SIZE = 18;
 
     private static final int CHEST_PANEL_EDGE_PAD_PX = 14;
     private static final int CHEST_SLOT_ORIGIN_X = 8;
@@ -61,7 +78,8 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     }
 
     public static int imageWidthChestGridPlusUpgradeStrip(int chestSlotColumns) {
-        return chestPanelWidthPx(chestSlotColumns) + UPGRADE_STRIP_WIDTH_PX;
+        // Name kept for callers; width is the chest panel only (tabs draw outside).
+        return chestPanelWidthPx(chestSlotColumns);
     }
 
     public static int imageHeightForChestRows(int chestRows) {
@@ -120,7 +138,7 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     public abstract int getImageHeightPx();
 
     public int getChestPanelWidthPx() {
-        return this.getImageWidthPx() - UPGRADE_STRIP_WIDTH_PX;
+        return this.getImageWidthPx();
     }
 
     public final Container getContainer() {
@@ -158,8 +176,8 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     /**
      * Client-only wipe of {@link #container}'s synced mirror when the server's backing chest storage is about to
      * diverge from what the client remembers (GLOBAL pool vs LOCAL, channel full resync, etc.).
-     * <p>Prevents stale items from the previous backing until full slot packets repaint the mirror — without touching
-     * {@link #upgradeContainer}.</p>
+     * <p>Clears stale items from the previous backing until slot packets repaint the mirror.
+     * Does not touch {@link #upgradeContainer}.</p>
      */
     public final void clearChestStorageMirrorBeforeResync() {
         Level lvl = this.level;
@@ -179,7 +197,7 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     }
 
     public final int getUpgradeSlotCount() {
-        return UPGRADE_SLOT_COUNT;
+        return this.upgradeContainer.getContainerSize();
     }
 
     public final int getFirstUpgradeSlotIndex() {
@@ -190,13 +208,95 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
         return this.chestSlotCount + this.getUpgradeSlotCount();
     }
 
-    /** Left edge X for every upgrade slot (strip is a vertical column). */
+    /** Upgrade slot X relative to the GUI left (panel width + tab attachment + tab padding). */
     public final int getUpgradeSlotBaseX() {
-        return this.getChestPanelWidthPx() + UPGRADE_STRIP_GAP_PX + UPGRADE_STRIP_PADDING_PX;
+        return this.getChestPanelWidthPx() + this.getUpgradeTabAttachmentOffset() + UPGRADE_TAB_PAD;
+    }
+
+    /**
+     * Extra left pixels folded into the upgrade tab's 9-slice (keeps flush, widens on X).
+     * Scrollable chests override this so the tab covers the scrollbar overhang.
+     */
+    public int getUpgradeTabAttachmentOffset() {
+        return 0;
     }
 
     public final int getUpgradeSlotY(int index) {
-        return 18 + index * 18;
+        return UPGRADE_TAB_ORIGIN_Y + UPGRADE_TAB_CONTENT_TOP + index * UPGRADE_SLOT_SIZE;
+    }
+
+    public final Slot getUpgradeSlot(int index) {
+        return this.slots.get(this.getFirstUpgradeSlotIndex() + index);
+    }
+
+    public final boolean areUpgradeSlotsActive() {
+        for (int i = 0; i < this.getUpgradeSlotCount(); i++) {
+            Slot slot = this.getUpgradeSlot(i);
+            if (slot instanceof UpgradeSlot upgradeSlot && upgradeSlot.isActive()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public final void setUpgradeSlotsActive(boolean active) {
+        for (int i = 0; i < this.getUpgradeSlotCount(); i++) {
+            Slot slot = this.getUpgradeSlot(i);
+            if (slot instanceof UpgradeSlot upgradeSlot) {
+                upgradeSlot.setActive(active);
+            }
+        }
+    }
+
+    public final void moveUpgradeSlotsOffScreen() {
+        setUpgradeSlotsActive(false);
+    }
+
+    public final void placeUpgradeSlots(int localX, int firstLocalY, int stepY) {
+        setUpgradeSlotsActive(true);
+    }
+
+    /**
+     * @return empty if {@code stack} may be installed into {@code excludeSlot}; otherwise a deny reason for tooltips.
+     */
+    public final Optional<Component> getUpgradeInstallDenyReason(ItemStack stack, int excludeSlot) {
+        if (stack.isEmpty() || !ChestUpgradeManager.isUpgradeCard(stack)) {
+            return Optional.empty();
+        }
+
+        Item item = stack.getItem();
+        if (item == ModItems.DEEP_STORAGE_UPGRADE_CARD.get() && !this.allowDeepStorageUpgradeCard()) {
+            return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.deep_tier_not_allowed"));
+        }
+
+        Item deep = ModItems.DEEP_STORAGE_UPGRADE_CARD.get();
+        Item networking = ModItems.NETWORKING_UPGRADE_CARD.get();
+        for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
+            if (i == excludeSlot) {
+                continue;
+            }
+            ItemStack existing = this.upgradeContainer.getItem(i);
+            if (existing.isEmpty()) {
+                continue;
+            }
+            if (existing.getItem() == item) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.duplicate"));
+            }
+            if (item == deep && existing.getItem() == networking) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.deep_vs_network"));
+            }
+            if (item == networking && existing.getItem() == deep) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.network_vs_deep"));
+            }
+        }
+        return Optional.empty();
+    }
+
+    public final boolean canInstallUpgradeCard(ItemStack stack, int excludeSlot) {
+        if (!ChestUpgradeManager.isUpgradeCard(stack)) {
+            return false;
+        }
+        return this.getUpgradeInstallDenyReason(stack, excludeSlot).isEmpty();
     }
 
     /** Plain grid at the standard chest-origin coordinates; sets {@link #chestSlotCount}. */
@@ -218,16 +318,14 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     protected final void addUpgradeSlots() {
         for (int i = 0; i < this.getUpgradeSlotCount(); i++) {
             int idx = i;
-            this.addSlot(new Slot(this.upgradeContainer, idx, this.getUpgradeSlotBaseX(), this.getUpgradeSlotY(idx)) {
+            this.addSlot(new UpgradeSlot(
+                    this.upgradeContainer,
+                    idx,
+                    this.getUpgradeSlotBaseX(),
+                    this.getUpgradeSlotY(idx)) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
-                    if (!ChestUpgradeManager.isUpgradeCard(stack)) {
-                        return false;
-                    }
-                    if (stack.getItem() == ModItems.DEEP_STORAGE_UPGRADE_CARD.get()) {
-                        return AbstractChestMenu.this.allowDeepStorageUpgradeCard();
-                    }
-                    return true;
+                    return AbstractChestMenu.this.canInstallUpgradeCard(stack, idx);
                 }
 
                 @Override
@@ -240,6 +338,26 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
                     return 1;
                 }
             });
+        }
+    }
+
+    /**
+     * Upgrade slot that can be deactivated while its tab is closed or animating.
+     */
+    public static class UpgradeSlot extends Slot {
+        private boolean active;
+
+        public UpgradeSlot(Container container, int slot, int x, int y) {
+            super(container, slot, x, y);
+        }
+
+        public void setActive(boolean active) {
+            this.active = active;
+        }
+
+        @Override
+        public boolean isActive() {
+            return this.active;
         }
     }
 
@@ -290,10 +408,10 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
                 }
             } else {
                 if (ChestUpgradeManager.isUpgradeCard(stack)) {
-                    if (!this.moveItemStackTo(stack, this.getFirstUpgradeSlotIndex(), this.getFirstPlayerSlotIndex(), false)) {
-                        if (!this.moveItemStackTo(stack, 0, this.chestSlotCount, false)) {
-                            return ItemStack.EMPTY;
-                        }
+                    boolean movedToUpgrade = this.areUpgradeSlotsActive()
+                            && this.moveItemStackTo(stack, this.getFirstUpgradeSlotIndex(), this.getFirstPlayerSlotIndex(), false);
+                    if (!movedToUpgrade && !this.moveItemStackTo(stack, 0, this.chestSlotCount, false)) {
+                        return ItemStack.EMPTY;
                     }
                 } else {
                     if (DeepStorageMenuActions.tryMoveIntoDeepStorage(this, stack)) {
@@ -388,4 +506,3 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
         return this.level;
     }
 }
-

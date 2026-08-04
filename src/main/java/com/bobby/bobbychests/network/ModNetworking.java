@@ -58,6 +58,17 @@ public final class ModNetworking {
                         chest.sortActiveContents();
                     });
                 })
+                .playToServer(SetUpgradeTabOpenPayload.TYPE, SetUpgradeTabOpenPayload.STREAM_CODEC, (payload, ctx) -> {
+                    ctx.enqueueWork(() -> {
+                        if (!(ctx.player().containerMenu instanceof com.bobby.bobbychests.chest.menu.AbstractChestMenu menu)) {
+                            return;
+                        }
+                        if (!menu.getChestPos().equals(payload.pos())) {
+                            return;
+                        }
+                        menu.setUpgradeSlotsActive(payload.open());
+                    });
+                })
                 .playBidirectional(
                         SetScrollableChestScrollPayload.TYPE,
                         SetScrollableChestScrollPayload.STREAM_CODEC,

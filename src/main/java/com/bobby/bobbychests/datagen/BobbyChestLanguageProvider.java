@@ -23,6 +23,12 @@ public final class BobbyChestLanguageProvider extends LanguageProvider {
         this.add("item.bobbychests.lock_upgrade_card", "Lock Upgrade");
         this.add("item.bobbychests.deep_storage_upgrade_card", "Deep Storage Upgrade");
 
+        this.add("gui.bobbychests.tab.upgrades", "Upgrades");
+        this.add("gui.bobbychests.upgrade.deny.duplicate", "This upgrade is already installed");
+        this.add("gui.bobbychests.upgrade.deny.deep_vs_network", "Cannot use Deep Storage with Networking");
+        this.add("gui.bobbychests.upgrade.deny.network_vs_deep", "Cannot use Networking with Deep Storage");
+        this.add("gui.bobbychests.upgrade.deny.deep_tier_not_allowed", "Deep Storage is only for Dirt and Wooden chests");
+
         for (BobbyChestData.ChestDefinition chest : BobbyChestData.CHESTS) {
             this.add(chest.block().get(), chest.displayName());
             this.add("container.bobbychests." + chest.id(), chest.displayName());

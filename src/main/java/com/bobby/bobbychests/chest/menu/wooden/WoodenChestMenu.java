@@ -2,7 +2,6 @@ package com.bobby.bobbychests.chest.menu.wooden;
 
 import com.bobby.bobbychests.registry.ModMenus;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
-import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -20,7 +19,7 @@ public final class WoodenChestMenu extends AbstractChestMenu {
     private static final int CHEST_SLOTS = SLOTS_PER_ROW * ROWS;
 
     public static WoodenChestMenu clientConstructor(int syncId, Inventory playerInventory) {
-        return new WoodenChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), new SimpleContainer(ChestUpgradeManager.SLOT_COUNT), BlockPos.ZERO, 0, false, null, true, ChestTier.WOOD.maxChannelId());
+        return new WoodenChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), new SimpleContainer(ChestTier.WOOD.upgradeSlotCount()), BlockPos.ZERO, 0, false, null, true, ChestTier.WOOD.maxChannelId());
     }
 
     public static WoodenChestMenu clientConstructor(int syncId, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
@@ -29,7 +28,7 @@ public final class WoodenChestMenu extends AbstractChestMenu {
                 syncId,
                 playerInventory,
                 new SimpleContainer(CHEST_SLOTS),
-                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
+                new SimpleContainer(ChestTier.WOOD.upgradeSlotCount()),
                 p.chestPos(),
                 p.initialChestId(),
                 p.initialLocked(),

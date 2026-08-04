@@ -265,7 +265,7 @@ public abstract class AbstractScrollableChestScreen<M extends AbstractScrollable
                 this.menu.getChestPanelWidthPx(), this.imageHeight,
                 BACKGROUND_TEXTURE_SIZE, BACKGROUND_TEXTURE_SIZE
         );
-        this.renderUpgradeSlotPlaceholders(graphics);
+        this.renderTabStrip(graphics, mouseX, mouseY, partialTick);
         int trackLeft = this.scrollbarTrackLeft();
         int trackTop = this.scrollbarTrackTop();
         int trackH = this.scrollbarTrackHeightPx();

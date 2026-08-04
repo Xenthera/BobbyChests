@@ -4,9 +4,12 @@ import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.chest.storage.ChestStorageMode;
+import com.bobby.bobbychests.client.chest.screen.tab.UpgradeSlotsTab;
 import com.bobby.bobbychests.network.SortChestPayload;
 import com.bobby.bobbychests.network.SetGlobalStorageIdPayload;
 import com.bobby.bobbychests.network.SetLockedPayload;
+import com.bobby.bobbycore.client.gui.GuiExtraAreasScreen;
+import com.bobby.bobbycore.client.gui.TabStrip;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ImageButton;
@@ -15,6 +18,7 @@ import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -31,7 +35,7 @@ import java.util.List;
 import java.util.Optional;
 import net.minecraft.world.inventory.Slot;
 
-public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends AbstractContainerScreen<M> {
+public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends AbstractContainerScreen<M> implements GuiExtraAreasScreen {
     private EditBox editBox;
     private ImageButton lockButtonLocked;
     private ImageButton lockButtonUnlocked;
@@ -48,6 +52,8 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     private boolean clearSortButtonFocusNextTick;
     /** Previous tick's {@link AbstractChestMenu#hasLockUpgradeInstalled()}; used to refresh lock UI when the card is added or removed. */
     private boolean lastHadLockUpgradeInstalled;
+    private TabStrip tabStrip;
+    private UpgradeSlotsTab upgradesTab;
     private static final long CLAMP_POPUP_MS = 1200L;
     private static final int GUI_MARGIN_PX = 6;
     private static final int ID_BOX_H = 10;
@@ -108,7 +114,14 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         this.initIdBox();
         this.initSortButton();
         this.initLockToggle();
+        this.initTabStrip();
         this.updateStorageModeWidgets();
+    }
+
+    private void initTabStrip() {
+        this.tabStrip = new TabStrip(this.leftPos + this.menu.getChestPanelWidthPx(), this.topPos + 4);
+        this.tabStrip.setAttachmentOffset(this.menu.getUpgradeTabAttachmentOffset());
+        this.upgradesTab = this.tabStrip.addTab(new UpgradeSlotsTab(this.menu));
     }
 
     private void initIdBox() {
@@ -174,26 +187,6 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         return true;
     }
 
-    protected void renderUpgradeSlotPlaceholders(GuiGraphicsExtractor graphics) {
-        int borderArgb = 0xFF8E8E8E;
-        int innerArgb = 0x55303030;
-        int outer = 18;
-        int border = 1;
-        int x = this.leftPos + this.menu.getUpgradeSlotBaseX();
-        for (int i = 0; i < this.menu.getUpgradeSlotCount(); i++) {
-            int y = this.topPos + this.menu.getUpgradeSlotY(i);
-            int bx0 = x - border;
-            int by0 = y - border;
-            int bx1 = bx0 + outer;
-            int by1 = by0 + outer;
-            graphics.fill(RenderPipelines.GUI, x, y, x + (outer - 2 * border), y + (outer - 2 * border), innerArgb);
-            graphics.fill(RenderPipelines.GUI, bx0, by0, bx1, by0 + border, borderArgb);
-            graphics.fill(RenderPipelines.GUI, bx0, by1 - border, bx1, by1, borderArgb);
-            graphics.fill(RenderPipelines.GUI, bx0, by0 + border, bx0 + border, by1 - border, borderArgb);
-            graphics.fill(RenderPipelines.GUI, bx1 - border, by0 + border, bx1, by1 - border, borderArgb);
-        }
-    }
-
     protected final void extractTieredChestGuiBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick, Identifier textureGlobal, Identifier textureLocal, int textureAtlasSize) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
         graphics.blit(
@@ -207,7 +200,27 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
                 this.imageHeight,
                 textureAtlasSize,
                 textureAtlasSize);
-        this.renderUpgradeSlotPlaceholders(graphics);
+        this.renderTabStrip(graphics, mouseX, mouseY, partialTick);
+    }
+
+    protected void renderTabStrip(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        if (this.tabStrip == null) {
+            return;
+        }
+        this.tabStrip.setOrigin(this.leftPos + this.menu.getChestPanelWidthPx(), this.topPos + 4);
+        this.tabStrip.setAttachmentOffset(this.menu.getUpgradeTabAttachmentOffset());
+        this.tabStrip.render(graphics, mouseX, mouseY, partialTick);
+        this.tabStrip.renderTooltips(this, graphics, mouseX, mouseY);
+    }
+
+    @Override
+    public List<Rect2i> getGuiExtraAreas() {
+        if (this.tabStrip == null) {
+            return List.of();
+        }
+        this.tabStrip.setOrigin(this.leftPos + this.menu.getChestPanelWidthPx(), this.topPos + 4);
+        this.tabStrip.setAttachmentOffset(this.menu.getUpgradeTabAttachmentOffset());
+        return this.tabStrip.getGuiExtraAreas();
     }
 
     @Override
@@ -379,7 +392,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     }
 
     /**
-     * Subclasses tweak scroll position when identity keys change mid-interaction — see
+     * Subclasses tweak scroll position when identity keys change mid-interaction; see
      * {@link AbstractScrollableChestScreen#resetScrollMenuOnStorageKeyChange()}.
      */
     protected void resetScrollMenuOnStorageKeyChange() {}
@@ -387,6 +400,11 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     @Override
     protected void containerTick() {
         super.containerTick();
+        if (this.tabStrip != null) {
+            this.tabStrip.setOrigin(this.leftPos + this.menu.getChestPanelWidthPx(), this.topPos + 4);
+            this.tabStrip.setAttachmentOffset(this.menu.getUpgradeTabAttachmentOffset());
+            this.tabStrip.tick();
+        }
         this.clearSortButtonFocusIfQueued();
         this.syncGlobalStorageModeFromBlockEntity();
         this.syncLockStateFromChestWhenUpgradePresenceChanges();
@@ -436,6 +454,10 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean inBounds) {
+        if (this.tabStrip != null && event.button() == 0
+                && this.tabStrip.mouseClicked(event.x(), event.y(), event.button())) {
+            return true;
+        }
         boolean handled = super.mouseClicked(event, inBounds);
         if (this.editBox != null && event.button() == 0) {
             double mx = event.x();
@@ -482,6 +504,22 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
 
     private void showClampPopup() {
         this.clampPopupUntilMs = Util.getMillis() + CLAMP_POPUP_MS;
+    }
+
+    @Override
+    protected void extractTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        if (this.hoveredSlot instanceof AbstractChestMenu.UpgradeSlot upgradeSlot
+                && upgradeSlot.isActive()
+                && !this.menu.getCarried().isEmpty()) {
+            Optional<Component> deny = this.menu.getUpgradeInstallDenyReason(
+                    this.menu.getCarried(),
+                    this.hoveredSlot.getContainerSlot());
+            if (deny.isPresent()) {
+                graphics.setTooltipForNextFrame(this.font, List.of(deny.get()), Optional.empty(), mouseX, mouseY);
+                return;
+            }
+        }
+        super.extractTooltip(graphics, mouseX, mouseY);
     }
 
     @Override

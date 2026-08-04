@@ -28,5 +28,10 @@
   "item.bobbychests.upgrade_alloy": "Upgrade Alloy",
   "item.bobbychests.upgrade_alloy_blend": "Upgrade Alloy Blend",
   "item.bobbychests.void_upgrade_card": "Void Upgrade",
-  "itemGroup.bobbychests": "Bobby Chests"
+  "itemGroup.bobbychests": "Bobby Chests",
+  "gui.bobbychests.tab.upgrades": "Upgrades",
+  "gui.bobbychests.upgrade.deny.duplicate": "This upgrade is already installed",
+  "gui.bobbychests.upgrade.deny.deep_vs_network": "Cannot use Deep Storage with Networking",
+  "gui.bobbychests.upgrade.deny.network_vs_deep": "Cannot use Networking with Deep Storage",
+  "gui.bobbychests.upgrade.deny.deep_tier_not_allowed": "Deep Storage is only for Dirt and Wooden chests"
 }

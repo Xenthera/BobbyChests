@@ -2,7 +2,6 @@ package com.bobby.bobbychests.chest.menu.copper;
 
 import com.bobby.bobbychests.registry.ModMenus;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
-import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -20,7 +19,7 @@ public final class CopperChestMenu extends AbstractChestMenu {
     private static final int CHEST_SLOTS = SLOTS_PER_ROW * ROWS;
 
     public static CopperChestMenu clientConstructor(int syncId, Inventory playerInventory) {
-        return new CopperChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), new SimpleContainer(ChestUpgradeManager.SLOT_COUNT), BlockPos.ZERO, 0, false, null, true, ChestTier.COPPER.maxChannelId());
+        return new CopperChestMenu(syncId, playerInventory, new SimpleContainer(CHEST_SLOTS), new SimpleContainer(ChestTier.COPPER.upgradeSlotCount()), BlockPos.ZERO, 0, false, null, true, ChestTier.COPPER.maxChannelId());
     }
 
     public static CopperChestMenu clientConstructor(int syncId, Inventory playerInventory, RegistryFriendlyByteBuf buf) {
@@ -29,7 +28,7 @@ public final class CopperChestMenu extends AbstractChestMenu {
                 syncId,
                 playerInventory,
                 new SimpleContainer(CHEST_SLOTS),
-                new SimpleContainer(ChestUpgradeManager.SLOT_COUNT),
+                new SimpleContainer(ChestTier.COPPER.upgradeSlotCount()),
                 p.chestPos(),
                 p.initialChestId(),
                 p.initialLocked(),

@@ -76,6 +76,11 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
         return this.chestRowsVisible;
     }
 
+    @Override
+    public int getUpgradeTabAttachmentOffset() {
+        return 4;
+    }
+
     /** Used by scrollable chest screens. */
     public final int getTotalChestRows() {
         return this.chestRowsTotal();
@@ -102,7 +107,7 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
     }
 
     /**
-     * Chest grid origin and step in GUI pixels — must match {@link ScrollWindowSlot} x/y from the tier menu.
+     * Chest grid origin and step in GUI pixels. Must match {@link ScrollWindowSlot} x/y from the tier menu.
      * {@link com.bobby.bobbychests.client.chest.screen.AbstractScrollableChestScreen} uses these for hit-testing.
      */
     public int chestSlotGridLeft() {
@@ -208,8 +213,9 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
             }
         } else {
             if (ChestUpgradeManager.isUpgradeCard(stack)) {
-                if (!this.moveItemStackTo(stack, this.getFirstUpgradeSlotIndex(), this.getFirstPlayerSlotIndex(), false)
-                        && !this.moveItemStackToLogicalChest(stack)) {
+                boolean movedToUpgrade = this.areUpgradeSlotsActive()
+                        && this.moveItemStackTo(stack, this.getFirstUpgradeSlotIndex(), this.getFirstPlayerSlotIndex(), false);
+                if (!movedToUpgrade && !this.moveItemStackToLogicalChest(stack)) {
                     return ItemStack.EMPTY;
                 }
             } else if (!this.moveItemStackToLogicalChest(stack)) {

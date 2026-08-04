@@ -7,3 +7,13 @@ pluginManagement {
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
+
+// Stable module name for composite substitution (BobbyPipes depends on
+// com.bobby.bobbychests:bobbychests:1.0.0), independent of folder case.
+rootProject.name = 'bobbychests'
+
+// BobbyCore shared library.
+def bobbyCore = [file('../BobbyCore'), file('../bobbycore')].find { it.exists() }
+if (bobbyCore != null) {
+    includeBuild bobbyCore.canonicalFile
+}

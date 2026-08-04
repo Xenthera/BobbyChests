@@ -171,6 +171,8 @@ configurations {
 }
 
 dependencies {
+    implementation "com.bobby.bobbycore:bobbycore:${bobbycore_version}"
+
     // JEI
     compileOnly "mezz.jei:jei-${jei_mc_version}-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-${jei_mc_version}-neoforge-api:${jei_version}"

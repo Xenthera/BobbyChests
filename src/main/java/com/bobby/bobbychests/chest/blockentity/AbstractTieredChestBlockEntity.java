@@ -62,7 +62,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     private UUID ownerUuid;
     private final ResourceHandler<ItemResource> itemResourceHandler = new RoutedChestItemResourceHandler(this);
     private final ResourceHandler<ItemResource> voidingItemResourceHandler = new VoidingItemResourceHandler(this, this.itemResourceHandler);
-    private final ChestUpgradeManager upgradeManager = new ChestUpgradeManager(this);
+    private final ChestUpgradeManager upgradeManager;
     private boolean savingLocalInventory;
 
     // Loading can happen before the block entity is attached to a level. In that case,
@@ -72,6 +72,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     protected AbstractTieredChestBlockEntity(BlockEntityType<? extends AbstractTieredChestBlockEntity> type, BlockPos worldPosition, BlockState blockState, ChestTier tier) {
         super(type, worldPosition, blockState);
         this.tier = tier;
+        this.upgradeManager = new ChestUpgradeManager(this);
         this.setItems(NonNullList.withSize(27 * 2, ItemStack.EMPTY));
 
         // Our menus wrap the chest in RoutedChestContainer, so vanilla's counter would not see them.
