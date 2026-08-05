@@ -30,6 +30,8 @@
   "item.bobbychests.void_upgrade_card": "Void Upgrade",
   "itemGroup.bobbychests": "Bobby Chests",
   "gui.bobbychests.tab.upgrades": "Upgrades",
+  "gui.bobbychests.tab.lock": "Lock",
+  "gui.bobbychests.tab.network": "Network",
   "gui.bobbychests.upgrade.deny.duplicate": "This upgrade is already installed",
   "gui.bobbychests.upgrade.deny.deep_vs_network": "Cannot use Deep Storage with Networking",
   "gui.bobbychests.upgrade.deny.network_vs_deep": "Cannot use Networking with Deep Storage",

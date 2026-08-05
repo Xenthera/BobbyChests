@@ -42,7 +42,10 @@ public final class WoodenChestMenu extends AbstractChestMenu {
 
         this.addStandardChestGridSlots(SLOTS_PER_ROW, ROWS);
         this.addUpgradeSlots();
-        this.addPlayerInventorySlots(playerInventory, 8, AbstractChestMenu.playerInventoryTopYBelowGrid(ROWS));
+        this.addPlayerInventorySlots(
+                playerInventory,
+                AbstractChestMenu.playerInventoryLeftXCenteredUnderGrid(SLOTS_PER_ROW),
+                AbstractChestMenu.playerInventoryTopYBelowGrid(ROWS));
     }
 
     @Override

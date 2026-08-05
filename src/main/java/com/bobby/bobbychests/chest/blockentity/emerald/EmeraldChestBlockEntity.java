@@ -19,6 +19,6 @@ public final class EmeraldChestBlockEntity extends AbstractTieredChestBlockEntit
 
     @Override
     public int getSlotCount() {
-        return 18 * 12; // 216
+        return 9 * 24; // 216
     }
 }

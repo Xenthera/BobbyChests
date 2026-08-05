@@ -4,22 +4,32 @@ import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.chest.storage.ChestStorageMode;
+import com.bobby.bobbychests.client.chest.screen.tab.LockFeatureTab;
+import com.bobby.bobbychests.client.chest.screen.tab.NetworkFeatureTab;
 import com.bobby.bobbychests.client.chest.screen.tab.UpgradeSlotsTab;
 import com.bobby.bobbychests.network.SortChestPayload;
 import com.bobby.bobbychests.network.SetGlobalStorageIdPayload;
 import com.bobby.bobbychests.network.SetLockedPayload;
 import com.bobby.bobbycore.client.gui.GuiExtraAreasScreen;
 import com.bobby.bobbycore.client.gui.TabStrip;
+import com.bobby.bobbycore.client.gui.ThemedContainerScreen;
+import com.bobby.bobbycore.client.gui.ThemedScreenChrome;
+import com.bobby.bobbycore.client.gui.draw.ScreenHeader;
+import com.bobby.bobbycore.client.gui.draw.SlotChrome;
+import com.bobby.bobbycore.client.gui.draw.UiDraw;
+import com.bobby.bobbycore.client.gui.font.BobbyFonts;
+import com.bobby.bobbycore.client.gui.layout.GuiLayout;
+import com.bobby.bobbycore.client.gui.scroll.WindowedContainerSlot;
+import com.bobby.bobbycore.client.gui.theme.BobbyThemes;
+import com.bobby.bobbycore.client.gui.theme.UiTheme;
+import com.bobby.bobbycore.client.gui.widget.UiButton;
+import com.bobby.bobbycore.client.gui.widget.UiCheckbox;
+import com.bobby.bobbycore.client.gui.widget.UiTextBox;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.components.WidgetSprites;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -35,11 +45,10 @@ import java.util.List;
 import java.util.Optional;
 import net.minecraft.world.inventory.Slot;
 
-public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends AbstractContainerScreen<M> implements GuiExtraAreasScreen {
-    private EditBox editBox;
-    private ImageButton lockButtonLocked;
-    private ImageButton lockButtonUnlocked;
-    private ImageButton sortButton;
+public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends ThemedContainerScreen<M> implements GuiExtraAreasScreen {
+    private UiTextBox editBox;
+    private UiCheckbox lockCheckbox;
+    private UiButton sortButton;
     private boolean locked;
     private boolean usingGlobalStorage;
     private int lastSentId = Integer.MIN_VALUE;
@@ -53,46 +62,47 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     /** Previous tick's {@link AbstractChestMenu#hasLockUpgradeInstalled()}; used to refresh lock UI when the card is added or removed. */
     private boolean lastHadLockUpgradeInstalled;
     private TabStrip tabStrip;
+    private LockFeatureTab lockTab;
+    private NetworkFeatureTab networkTab;
     private UpgradeSlotsTab upgradesTab;
     private static final long CLAMP_POPUP_MS = 1200L;
     private static final int GUI_MARGIN_PX = 6;
-    private static final int ID_BOX_H = 10;
-    private static final int ID_BOX_W = 62;
-    private static final int ID_BOX_RIGHT_PAD = 15;
-    private static final int LOCK_TOGGLE_W = 18;
-    private static final int LOCK_TOGGLE_H = 9;
-    private static final int LOCK_TOGGLE_LEFT_PAD = 7;
-    private static final int SORT_BTN_SIZE = 9;
-    private static final int SORT_BTN_GAP_AFTER_ID = 2;
-    private static final Identifier SORT_BUTTON = Identifier.fromNamespaceAndPath("bobbychests", "sort_button");
-    private static final Identifier SORT_BUTTON_DISABLED = Identifier.fromNamespaceAndPath("bobbychests", "sort_button_disabled");
-    private static final Identifier SORT_BUTTON_HIGHLIGHTED = Identifier.fromNamespaceAndPath("bobbychests", "sort_button_highlighted");
-    private static final WidgetSprites SORT_BUTTON_SPRITES = new WidgetSprites(SORT_BUTTON, SORT_BUTTON_DISABLED, SORT_BUTTON_HIGHLIGHTED);
+    private static final int ID_BOX_H = 12;
+    private static final int ID_BOX_W = 54;
+    private static final int SORT_BTN_W = 30;
+    private static final int SORT_RIGHT_PAD = 6;
 
-    private static final Identifier LOCK_TOGGLE_LOCKED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_locked");
-    private static final Identifier LOCK_TOGGLE_LOCKED_DISABLED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_locked_disabled");
-    private static final Identifier LOCK_TOGGLE_LOCKED_HIGHLIGHTED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_locked_highlighted");
-    private static final WidgetSprites LOCKED_SPRITES = new WidgetSprites(LOCK_TOGGLE_LOCKED, LOCK_TOGGLE_LOCKED_DISABLED, LOCK_TOGGLE_LOCKED_HIGHLIGHTED);
+    protected static final UiTheme UI_THEME = BobbyThemes.BOBBY_DARK;
 
-    private static final Identifier LOCK_TOGGLE_UNLOCKED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_unlocked");
-    private static final Identifier LOCK_TOGGLE_UNLOCKED_DISABLED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_unlocked_disabled");
-    private static final Identifier LOCK_TOGGLE_UNLOCKED_HIGHLIGHTED = Identifier.fromNamespaceAndPath("bobbychests", "lock_toggle_unlocked_highlighted");
-    private static final WidgetSprites UNLOCKED_SPRITES = new WidgetSprites(LOCK_TOGGLE_UNLOCKED, LOCK_TOGGLE_UNLOCKED_DISABLED, LOCK_TOGGLE_UNLOCKED_HIGHLIGHTED);
+    private ItemStack headerIcon = ItemStack.EMPTY;
 
     protected AbstractChestScreen(M menu, Inventory inv, Component title) {
         super(menu, inv, title, menu.getImageWidthPx(), menu.getImageHeightPx());
-        this.titleLabelX = 10;
-        this.inventoryLabelX = 10;
+        this.titleLabelX = ScreenHeader.titleX();
+        this.titleLabelY = this.uiTheme().titlePadY();
+        this.inventoryLabelX = GuiLayout.centeredPlayerInventoryOriginX(menu.getChestPanelWidthPx());
+        int invTop = menu.getPlayerInventoryTopY();
+        // Sit the "Inventory" label with more air under the content/inventory divider.
+        this.inventoryLabelY = invTop > 0 ? invTop - 14 : this.imageHeight - 94;
+    }
+
+    /** Absolute Y that vertically centers a header widget of {@code height} px. */
+    protected int headerWidgetY(int height) {
+        return this.topPos + this.uiTheme().headerCenteredY(height);
+    }
+
+    /** Per-tier content tint (header/body/inventory/slots). */
+    protected UiTheme uiTheme() {
+        return ChestGuiThemes.forMenu(this.menu);
     }
 
 
-    protected int idBoxX() {
-        return this.leftPos + this.menu.getChestPanelWidthPx() - ID_BOX_W - ID_BOX_RIGHT_PAD;
+    protected int sortButtonX() {
+        return this.leftPos + this.menu.getChestPanelWidthPx() - SORT_BTN_W - SORT_RIGHT_PAD;
     }
 
-
-    protected int idBoxY() {
-        return this.topPos + 5;
+    protected int sortButtonY() {
+        return this.headerWidgetY(ID_BOX_H);
     }
 
     private AbstractTieredChestBlockEntity getChestBlockEntity() {
@@ -106,6 +116,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     @Override
     protected void init() {
         super.init();
+        this.headerIcon = ScreenHeader.blockIcon(this.menu.getChestPos());
         this.clampGuiOnScreen();
         this.locked = this.menu.getInitialLocked();
         this.usingGlobalStorage = this.menu.getInitialUsingGlobalStorage();
@@ -114,36 +125,110 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         this.initIdBox();
         this.initSortButton();
         this.initLockToggle();
-        this.initTabStrip();
-        this.updateStorageModeWidgets();
+        this.ensureTabStrip();
+        this.syncFeatureTabs();
     }
 
-    private void initTabStrip() {
-        this.tabStrip = new TabStrip(this.leftPos + this.menu.getChestPanelWidthPx(), this.topPos + 4);
+    private void ensureTabStrip() {
+        if (this.tabStrip != null) {
+            return;
+        }
+        this.tabStrip = new TabStrip(this.leftPos + this.menu.getChestPanelWidthPx(), this.tabStripOriginY());
         this.tabStrip.setAttachmentOffset(this.menu.getUpgradeTabAttachmentOffset());
-        this.upgradesTab = this.tabStrip.addTab(new UpgradeSlotsTab(this.menu));
+    }
+
+    /** Screen Y for the first tab: 1px below the panel header bottom. */
+    private int tabStripOriginY() {
+        return this.topPos + GuiLayout.tabStripOriginY();
+    }
+
+    /**
+     * Feature tabs appear only for upgrades that need controls: lock, network, and the upgrade-card strip.
+     * Adds/removes tabs in place so an already-open upgrades tab stays open when cards are installed.
+     * Order: upgrades, then lock, then network.
+     */
+    private void syncFeatureTabs() {
+        this.ensureTabStrip();
+        boolean wantLock = this.menu.hasLockUpgradeInstalled();
+        boolean wantNetwork = this.menu.hasNetworkingUpgradeInstalled();
+        boolean wantUpgrades = this.menu.getUpgradeSlotCount() > 0;
+
+        if (wantUpgrades && this.upgradesTab == null) {
+            this.upgradesTab = this.tabStrip.addTab(0, new UpgradeSlotsTab(this.menu));
+        } else if (!wantUpgrades && this.upgradesTab != null) {
+            this.tabStrip.removeTab(this.upgradesTab);
+            this.upgradesTab = null;
+        }
+
+        if (wantLock && this.lockTab == null) {
+            int index = this.upgradesTab != null ? 1 : 0;
+            this.lockTab = this.tabStrip.addTab(index, new LockFeatureTab());
+        } else if (!wantLock && this.lockTab != null) {
+            this.tabStrip.removeTab(this.lockTab);
+            this.lockTab = null;
+        }
+
+        if (wantNetwork && this.networkTab == null) {
+            int index = 0;
+            if (this.upgradesTab != null) {
+                index++;
+            }
+            if (this.lockTab != null) {
+                index++;
+            }
+            this.networkTab = this.tabStrip.addTab(index, new NetworkFeatureTab(ID_BOX_W, ID_BOX_H));
+        } else if (!wantNetwork && this.networkTab != null) {
+            this.tabStrip.removeTab(this.networkTab);
+            this.networkTab = null;
+        }
+
+        this.layoutFeatureWidgets();
+    }
+
+    /** Parks lock/network widgets inside their open feature tabs; hides them otherwise. */
+    private void layoutFeatureWidgets() {
+        boolean showLock = this.lockTab != null && this.lockTab.contentVisible();
+        if (this.lockCheckbox != null) {
+            if (showLock) {
+                this.lockCheckbox.setPosition(
+                        this.lockTab.contentWidgetX(this.lockCheckbox.getWidth()),
+                        this.lockTab.contentWidgetY());
+            }
+            this.lockCheckbox.visible = showLock;
+            this.lockCheckbox.active = showLock;
+            if (this.lockCheckbox.selected() != this.locked) {
+                this.lockCheckbox.setSelected(this.locked);
+            }
+        }
+
+        boolean showNetwork = this.networkTab != null && this.networkTab.contentVisible();
+        if (this.editBox != null) {
+            if (showNetwork) {
+                this.editBox.setPosition(this.networkTab.idBoxX(), this.networkTab.idBoxY());
+            } else if (this.editBox.isFocused()) {
+                this.editBox.setFocused(false);
+                if (this.getFocused() == this.editBox) {
+                    this.setFocused(null);
+                }
+            }
+            this.editBox.visible = showNetwork;
+            this.editBox.active = showNetwork;
+        }
     }
 
     private void initIdBox() {
-        int idBoxX = this.idBoxX();
-        int idBoxY = this.idBoxY();
-
-        // Keep the same visual text position as bordered=true (x+4, y+(h-8)/2),
-        // but render with no background/border.
-        this.editBox = new EditBox(
-                this.font,
-                idBoxX + 4,
-                idBoxY + (ID_BOX_H - 8) / 2,
-                ID_BOX_W - 8,
-                ID_BOX_H,
-                Component.literal("ID"));
-        this.editBox.setMaxLength(9);
-        this.editBox.setFilter(s -> s.chars().allMatch(Character::isDigit));
-        this.editBox.setBordered(false);
         int initial = clampChannel(this.menu.getInitialChestId());
-        this.editBox.setValue(String.valueOf(initial));
+        this.editBox = UiTextBox.builder(this.font, Component.literal("ID"))
+                .bounds(0, 0, ID_BOX_W, ID_BOX_H)
+                .theme(NetworkFeatureTab.tabTheme())
+                .maxLength(9)
+                .filter(s -> s.chars().allMatch(Character::isDigit))
+                .responder(this::onIdEdited)
+                .value(String.valueOf(initial))
+                .build();
+        this.editBox.visible = false;
+        this.editBox.active = false;
         this.lastSentId = initial;
-        this.editBox.setResponder(this::onIdEdited);
         this.addRenderableWidget(this.editBox);
     }
 
@@ -152,54 +237,67 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
             return;
         }
 
-        int sortX = this.idBoxX() + ID_BOX_W + SORT_BTN_GAP_AFTER_ID;
-        int sortY = this.idBoxY();
-        this.sortButton = new ImageButton(
-                sortX,
-                sortY,
-                SORT_BTN_SIZE,
-                SORT_BTN_SIZE,
-                SORT_BUTTON_SPRITES,
-                btn -> {
+        this.sortButton = UiButton.builder(Component.literal("Sort"), btn -> {
                     ClientPacketDistributor.sendToServer(new SortChestPayload(this.menu.getChestPos()));
                     this.clearSortButtonFocusNextTick = true;
-                }
-        );
-        this.sortButton.setTooltip(Tooltip.create(Component.literal("Sort")));
+                })
+                .bounds(this.sortButtonX(), this.sortButtonY(), SORT_BTN_W, ID_BOX_H)
+                .theme(this.uiTheme())
+                .tooltip(Tooltip.create(Component.literal("Sort")))
+                .build();
         this.addRenderableWidget(this.sortButton);
     }
 
     private void initLockToggle() {
-        // Lock toggle exists for all chests but is only visible/active when the lock upgrade card is installed.
-        int lockX = this.lockToggleX();
-        int lockY = this.idBoxY();
-        this.lockButtonLocked = new ImageButton(lockX, lockY, LOCK_TOGGLE_W, LOCK_TOGGLE_H, LOCKED_SPRITES, btn -> this.onLockToggleClicked());
-        this.lockButtonUnlocked = new ImageButton(lockX, lockY, LOCK_TOGGLE_W, LOCK_TOGGLE_H, UNLOCKED_SPRITES, btn -> this.onLockToggleClicked());
-        this.lockButtonLocked.setTooltip(Tooltip.create(Component.literal("Locked")));
-        this.lockButtonUnlocked.setTooltip(Tooltip.create(Component.literal("Unlocked")));
-        this.addRenderableWidget(this.lockButtonLocked);
-        this.addRenderableWidget(this.lockButtonUnlocked);
+        this.lockCheckbox = UiCheckbox.builder(BobbyFonts.literal("Locked"), selected -> {
+                    this.locked = selected;
+                    this.resetScrollMenuOnStorageKeyChange();
+                    ClientPacketDistributor.sendToServer(new SetLockedPayload(this.menu.getChestPos(), this.locked));
+                })
+                .selected(this.locked)
+                .theme(LockFeatureTab.tabTheme())
+                .tint(LockFeatureTab.TINT)
+                .tooltip(Tooltip.create(Component.literal("Lock this chest")))
+                .build();
+        this.lockCheckbox.visible = false;
+        this.lockCheckbox.active = false;
+        this.addRenderableWidget(this.lockCheckbox);
         this.lastHadLockUpgradeInstalled = this.menu.hasLockUpgradeInstalled();
-        this.applyLockToggleUi();
     }
 
     protected boolean shouldShowSortButton() {
         return true;
     }
 
-    protected final void extractTieredChestGuiBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick, Identifier textureGlobal, Identifier textureLocal, int textureAtlasSize) {
+    /**
+     * Programmatic panel + slot chrome. Texture args are unused (kept so existing tiered
+     * screen call sites compile without churn).
+     */
+    protected final void extractTieredChestGuiBackground(
+            GuiGraphicsExtractor graphics,
+            int mouseX,
+            int mouseY,
+            float partialTick,
+            Identifier textureGlobal,
+            Identifier textureLocal,
+            int textureAtlasSize) {
+        this.drawThemedChestBackground(graphics, mouseX, mouseY, partialTick);
+    }
+
+    protected final void drawThemedChestBackground(
+            GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
-        graphics.blit(
-                RenderPipelines.GUI_TEXTURED,
-                this.usingGlobalStorage() ? textureGlobal : textureLocal,
-                this.leftPos,
-                this.topPos,
-                0,
-                0,
-                this.menu.getChestPanelWidthPx(),
-                this.imageHeight,
-                textureAtlasSize,
-                textureAtlasSize);
+        int panelW = this.menu.getChestPanelWidthPx();
+        int invTop = this.menu.getPlayerInventoryTopY();
+        // Divider sits above the inventory label so the label isn't jammed under the content rule.
+        int invBand = invTop > 0 ? Math.min(invTop - 16, this.inventoryLabelY - 3) : -1;
+        UiTheme theme = this.uiTheme();
+        ThemedScreenChrome.drawPanel(
+                graphics, theme, this.leftPos, this.topPos, panelW, this.imageHeight, invBand);
+        UiDraw.contentPaneBorder(
+                graphics, theme, this.leftPos, this.topPos, panelW, this.imageHeight, invBand);
+        SlotChrome.drawMenuSlots(
+                graphics, theme, this.leftPos, this.topPos, this.menu.slots, this.menu.getChestSlotCount());
         this.renderTabStrip(graphics, mouseX, mouseY, partialTick);
     }
 
@@ -207,9 +305,11 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         if (this.tabStrip == null) {
             return;
         }
-        this.tabStrip.setOrigin(this.leftPos + this.menu.getChestPanelWidthPx(), this.topPos + 4);
+        this.tabStrip.setOrigin(this.leftPos + this.menu.getChestPanelWidthPx(), this.tabStripOriginY());
         this.tabStrip.setAttachmentOffset(this.menu.getUpgradeTabAttachmentOffset());
         this.tabStrip.render(graphics, mouseX, mouseY, partialTick);
+        // Widgets track tab Y after render's interpolated stack layout.
+        this.layoutFeatureWidgets();
         this.tabStrip.renderTooltips(this, graphics, mouseX, mouseY);
     }
 
@@ -218,7 +318,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         if (this.tabStrip == null) {
             return List.of();
         }
-        this.tabStrip.setOrigin(this.leftPos + this.menu.getChestPanelWidthPx(), this.topPos + 4);
+        this.tabStrip.setOrigin(this.leftPos + this.menu.getChestPanelWidthPx(), this.tabStripOriginY());
         this.tabStrip.setAttachmentOffset(this.menu.getUpgradeTabAttachmentOffset());
         return this.tabStrip.getGuiExtraAreas();
     }
@@ -241,7 +341,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
                 scm.setScrollRows(0);
             }
             this.usingGlobalStorage = global;
-            this.updateStorageModeWidgets();
+            this.syncFeatureTabs();
         }
     }
 
@@ -290,19 +390,8 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         }
     }
 
-    private int lockToggleX() {
-        return this.leftPos + LOCK_TOGGLE_LEFT_PAD;
-    }
-
-    private void onLockToggleClicked() {
-        this.locked = !this.locked;
-        this.applyLockToggleUi();
-        this.resetScrollMenuOnStorageKeyChange();
-        ClientPacketDistributor.sendToServer(new SetLockedPayload(this.menu.getChestPos(), this.locked));
-    }
-
     /**
-     * Keeps the lock toggle aligned with the server when the lock upgrade is removed (chest auto-unlocks) or
+     * Keeps the lock checkbox aligned with the server when the lock upgrade is removed (chest auto-unlocks) or
      * re-inserted, without polling the block entity every tick while the upgrade slot is stable (so optimistic clicks
      * still feel instant).
      */
@@ -316,37 +405,10 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
             }
             this.lastHadLockUpgradeInstalled = hasLockUpgrade;
         }
-        this.applyLockToggleUi();
-    }
-
-    private void applyLockToggleUi() {
-        if (this.lockButtonLocked == null || this.lockButtonUnlocked == null) {
-            return;
-        }
-        boolean hasUpgrade = this.menu.hasLockUpgradeInstalled();
-        if (!hasUpgrade) {
-            this.lockButtonLocked.visible = false;
-            this.lockButtonUnlocked.visible = false;
-            this.lockButtonLocked.active = false;
-            this.lockButtonUnlocked.active = false;
-            return;
-        }
-
-        this.lockButtonLocked.visible = this.locked;
-        this.lockButtonUnlocked.visible = !this.locked;
-        this.lockButtonLocked.active = true;
-        this.lockButtonUnlocked.active = true;
     }
 
     protected final boolean usingGlobalStorage() {
         return this.usingGlobalStorage;
-    }
-
-    private void updateStorageModeWidgets() {
-        if (this.editBox != null) {
-            this.editBox.visible = this.usingGlobalStorage;
-            this.editBox.active = this.usingGlobalStorage;
-        }
     }
 
     private void onIdEdited(String value) {
@@ -400,14 +462,16 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
     @Override
     protected void containerTick() {
         super.containerTick();
+        this.syncGlobalStorageModeFromBlockEntity();
+        this.syncLockStateFromChestWhenUpgradePresenceChanges();
+        this.syncFeatureTabs();
         if (this.tabStrip != null) {
-            this.tabStrip.setOrigin(this.leftPos + this.menu.getChestPanelWidthPx(), this.topPos + 4);
+            this.tabStrip.setOrigin(this.leftPos + this.menu.getChestPanelWidthPx(), this.tabStripOriginY());
             this.tabStrip.setAttachmentOffset(this.menu.getUpgradeTabAttachmentOffset());
             this.tabStrip.tick();
         }
+        this.layoutFeatureWidgets();
         this.clearSortButtonFocusIfQueued();
-        this.syncGlobalStorageModeFromBlockEntity();
-        this.syncLockStateFromChestWhenUpgradePresenceChanges();
         this.syncIdBoxFromBlockEntity();
         if (this.pendingId == Integer.MIN_VALUE) {
             return;
@@ -533,8 +597,62 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends A
         return DeepStorageSlotRenderer.appendStoredCountTooltip(itemStack, super.getTooltipFromContainerItem(itemStack));
     }
 
+    /**
+     * Scrollable chests only: hovered storage slot as {@code (col, row)} at the
+     * bottom-right of the content pane (scroll-aware for windowed slots).
+     */
+    private void drawHoveredChestSlotCoord(GuiGraphicsExtractor graphics, UiTheme theme) {
+        if (!(this.menu instanceof AbstractScrollableChestMenu)) {
+            return;
+        }
+        Slot slot = this.hoveredSlot;
+        if (slot == null || slot.index < 0 || slot.index >= this.menu.getChestSlotCount()) {
+            return;
+        }
+        if (slot instanceof AbstractChestMenu.UpgradeSlot) {
+            return;
+        }
+        int col;
+        int row;
+        if (slot instanceof WindowedContainerSlot windowed) {
+            col = windowed.column();
+            row = windowed.logicalRow();
+        } else {
+            int cols = Math.max(1, this.menu.getChestGridColumns());
+            int index = slot.getContainerSlot();
+            col = index % cols;
+            row = index / cols;
+        }
+        String text = "(" + col + ", " + row + ")";
+        float scale = 0.75F;
+        int panelW = this.menu.getChestPanelWidthPx();
+        int invTop = this.menu.getPlayerInventoryTopY();
+        int invBand = invTop > 0 ? Math.min(invTop - 16, this.inventoryLabelY - 3) : this.imageHeight;
+        int contentBottom = invBand > 0 ? invBand : this.imageHeight;
+        int textW = Math.round(this.font.width(text) * scale);
+        int textH = Math.round(8 * scale);
+        int labelX = panelW - 6 - textW;
+        int labelY = contentBottom - textH - 3;
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(labelX, labelY);
+        graphics.pose().scale(scale, scale);
+        graphics.text(this.font, BobbyFonts.literal(text), 0, 0, theme.labelMuted(), false);
+        graphics.pose().popMatrix();
+    }
+
     @Override
     protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        UiTheme theme = this.uiTheme();
+        ScreenHeader.draw(graphics, this.font, theme, this.title, this.headerIcon, theme.labelPrimary());
+        graphics.text(
+                this.font,
+                BobbyFonts.apply(this.playerInventoryTitle),
+                this.inventoryLabelX,
+                this.inventoryLabelY,
+                theme.labelPrimary(),
+                false);
+        this.drawHoveredChestSlotCoord(graphics, theme);
+
         if (this.editBox == null || Util.getMillis() > this.clampPopupUntilMs) {
             return;
         }

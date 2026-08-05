@@ -20,8 +20,22 @@ public record ScrollableChestGuiAssets(
         return Identifier.fromNamespaceAndPath(BobbyChests.MODID, path);
     }
 
-    /** 18×6 viewport over {@code bobby_base_chest_108.png} with emerald scrollbar art. */
+    /** 9×6 viewport (gold width) with programmatic chrome; textures kept for callers. */
     public static ScrollableChestGuiAssets emeraldStyle108() {
+        return shared108();
+    }
+
+    /** Diamond reuses the same scroll chrome as emerald. */
+    public static ScrollableChestGuiAssets diamondStyle108() {
+        return shared108();
+    }
+
+    /** Netherite reuses emerald scrollbar assets until dedicated art exists. */
+    public static ScrollableChestGuiAssets netheriteStyle108() {
+        return shared108();
+    }
+
+    private static ScrollableChestGuiAssets shared108() {
         return new ScrollableChestGuiAssets(
                 tex("textures/gui/bobby_base_chest_108.png"),
                 tex("textures/gui/bobby_base_chest_108_no_id.png"),
@@ -32,10 +46,5 @@ public record ScrollableChestGuiAssets(
                 tex("textures/gui/scroll/emerald_scroll_handle_center.png"),
                 tex("textures/gui/scroll/emerald_scroll_handle_bottom.png")
         );
-    }
-
-    /** Netherite reuses emerald scrollbar assets until dedicated art exists. */
-    public static ScrollableChestGuiAssets netheriteStyle108() {
-        return emeraldStyle108();
     }
 }

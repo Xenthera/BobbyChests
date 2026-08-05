@@ -5,6 +5,8 @@ import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.chest.storage.DeepStorageStacks;
 import com.bobby.bobbychests.registry.ModItems;
 
+import com.bobby.bobbycore.client.gui.layout.GuiLayout;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -42,16 +44,31 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     public static final int DISABLED_SLOT_POS = -9999;
 
     /** Keep in sync with {@link com.bobby.bobbychests.client.chest.screen.tab.UpgradeSlotsTab}. */
-    public static final int UPGRADE_TAB_PAD = 8;
+    public static final int UPGRADE_TAB_PAD = 4;
     public static final int UPGRADE_TAB_CONTENT_TOP = 28;
-    public static final int UPGRADE_TAB_ORIGIN_Y = 4;
+    /** Keep in sync with {@link GuiLayout#tabStripOriginY()} so slots track the tab panel. */
+    public static final int UPGRADE_TAB_ORIGIN_Y = GuiLayout.tabStripOriginY();
     public static final int UPGRADE_SLOT_SIZE = 18;
 
-    private static final int CHEST_PANEL_EDGE_PAD_PX = 14;
-    private static final int CHEST_SLOT_ORIGIN_X = 8;
-    private static final int CHEST_SLOT_ORIGIN_Y = 18;
+    private static final int CHEST_SLOT_ORIGIN_X = GuiLayout.contentSlotOriginX();
+    private static final int CHEST_SLOT_ORIGIN_Y = GuiLayout.slottedContentTop();
     private static final int CHEST_SLOT_STEP = 18;
-    private static final int PLAYER_INV_GAP_BELOW_GRID = 14;
+    /** Air between storage grid and player inventory (label sits in this band). */
+    private static final int PLAYER_INV_GAP_BELOW_GRID = 22 + GuiLayout.CONTENT_BOTTOM_PAD;
+    private static final int CHEST_PANEL_SIDE_PAD_PX = GuiLayout.panelSidePad();
+    /** Player inv block: 3 rows + hotbar gap + hotbar. */
+    private static final int PLAYER_INV_BLOCK_H = 3 * 18 + 4 + 18;
+
+    /**
+     * Extra panel width reserved for a vertical scrollbar to the right of the slot grid
+     * (gap + track + right edge pad). Keeps the track inside {@link #getImageWidthPx()}.
+     */
+    public static final int SCROLLBAR_GAP_AFTER_GRID = 2;
+    public static final int SCROLLBAR_TRACK_WIDTH = 10;
+    public static final int SCROLLBAR_RIGHT_EDGE_PAD =
+            GuiLayout.CONTENT_WELL_EDGE + GuiLayout.CONTENT_INNER_PAD;
+    public static final int SCROLLBAR_GUTTER_PX =
+            SCROLLBAR_GAP_AFTER_GRID + SCROLLBAR_TRACK_WIDTH + SCROLLBAR_RIGHT_EDGE_PAD;
 
     public record TieredChestClientPayload(
             BlockPos chestPos,
@@ -74,7 +91,15 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     }
 
     public static int chestPanelWidthPx(int chestSlotColumns) {
-        return CHEST_PANEL_EDGE_PAD_PX + chestSlotColumns * CHEST_SLOT_STEP;
+        // Symmetric side pads so the 18px chrome grid is centered.
+        return CHEST_PANEL_SIDE_PAD_PX + chestSlotColumns * CHEST_SLOT_STEP + CHEST_PANEL_SIDE_PAD_PX;
+    }
+
+    /** Panel width that fits the slot grid plus an in-panel scrollbar gutter. */
+    public static int scrollableChestPanelWidthPx(int chestSlotColumns) {
+        return CHEST_PANEL_SIDE_PAD_PX
+                + chestSlotColumns * CHEST_SLOT_STEP
+                + SCROLLBAR_GUTTER_PX;
     }
 
     public static int imageWidthChestGridPlusUpgradeStrip(int chestSlotColumns) {
@@ -83,7 +108,10 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     }
 
     public static int imageHeightForChestRows(int chestRows) {
-        return 114 + chestRows * CHEST_SLOT_STEP;
+        return playerInventoryTopYBelowGrid(chestRows)
+                + PLAYER_INV_BLOCK_H
+                + GuiLayout.CONTENT_BOTTOM_PAD
+                + 2;
     }
 
     public static int playerInventoryLeftXCenteredUnderGrid(int chestSlotsPerRow) {
@@ -92,6 +120,35 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
 
     public static int playerInventoryTopYBelowGrid(int chestRows) {
         return CHEST_SLOT_ORIGIN_Y + chestRows * CHEST_SLOT_STEP + PLAYER_INV_GAP_BELOW_GRID;
+    }
+
+    /** Panel-relative left of the storage grid. */
+    public int chestSlotGridLeft() {
+        return CHEST_SLOT_ORIGIN_X;
+    }
+
+    /** Panel-relative top of the storage grid. */
+    public int chestSlotGridTop() {
+        return CHEST_SLOT_ORIGIN_Y;
+    }
+
+    public int chestSlotStep() {
+        return CHEST_SLOT_STEP;
+    }
+
+    /** Columns spanned by the open chest grid. */
+    public int getChestGridColumns() {
+        return this.chestGridColumns;
+    }
+
+    /** Visible storage rows in the open chest grid. */
+    public int getChestGridRows() {
+        return this.chestGridRows;
+    }
+
+    protected final void setChestGridSize(int columns, int rows) {
+        this.chestGridColumns = Math.max(1, columns);
+        this.chestGridRows = Math.max(1, rows);
     }
 
     protected final Container container;
@@ -105,6 +162,12 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     protected final int maxChannelId;
 
     protected int chestSlotCount;
+    /** Visible storage grid columns (panel layout). */
+    private int chestGridColumns = 9;
+    /** Visible storage grid rows (panel layout). */
+    private int chestGridRows = 1;
+    /** Panel-relative Y of the player inventory band (set by {@link #addPlayerInventorySlots}). */
+    private int playerInventoryTopY = -1;
 
     protected AbstractChestMenu(
             net.minecraft.world.inventory.MenuType<?> type,
@@ -301,6 +364,7 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
 
     /** Plain grid at the standard chest-origin coordinates; sets {@link #chestSlotCount}. */
     protected final void addStandardChestGridSlots(int slotsPerRow, int rows) {
+        this.setChestGridSize(slotsPerRow, rows);
         this.chestSlotCount = slotsPerRow * rows;
         int index = 0;
         for (int row = 0; row < rows; row++) {
@@ -369,6 +433,7 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     }
 
     protected final void addPlayerInventorySlots(Inventory playerInventory, int leftX, int topY) {
+        this.playerInventoryTopY = topY;
         // Player inventory (3 rows)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
@@ -380,6 +445,11 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
         for (int col = 0; col < 9; col++) {
             this.addSlot(new Slot(playerInventory, col, leftX + col * 18, hotbarY));
         }
+    }
+
+    /** Panel-relative top of the player-inventory tint band; {@code -1} if unset. */
+    public final int getPlayerInventoryTopY() {
+        return this.playerInventoryTopY;
     }
 
     /**
@@ -481,7 +551,7 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
         return false;
     }
 
-    private boolean hasNetworkingUpgradeInstalled() {
+    public final boolean hasNetworkingUpgradeInstalled() {
         for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
             if (this.upgradeContainer.getItem(i).getItem() == ModItems.NETWORKING_UPGRADE_CARD.get()) {
                 return true;

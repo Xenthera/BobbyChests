@@ -4,35 +4,32 @@ import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.network.SetUpgradeTabOpenPayload;
 import com.bobby.bobbychests.registry.ModItems;
 import com.bobby.bobbycore.client.gui.ExpandableTab;
+import com.bobby.bobbycore.client.gui.draw.SlotChrome;
+import com.bobby.bobbycore.client.gui.font.BobbyFonts;
+import com.bobby.bobbycore.client.gui.theme.UiTheme;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 /**
- * Right-edge upgrades tab. Upgrade slots are active only when fully open (synced to server).
- * Slot x/y are fixed at menu construction (final on MC 26); visibility uses {@code isActive}.
+ * Upgrade-card inventory tab (mint tint). Only the slot strip, feature controls live in their own tabs.
  */
 public final class UpgradeSlotsTab extends ExpandableTab {
+    public static final int TINT = 0xFFA8E6A3;
     private static final int PAD = AbstractChestMenu.UPGRADE_TAB_PAD;
     private static final int SLOT = AbstractChestMenu.UPGRADE_SLOT_SIZE;
     private static final int CONTENT_TOP = AbstractChestMenu.UPGRADE_TAB_CONTENT_TOP;
-    /** Soft mint multiply-tint for the creative-style tab panel and slots. */
-    private static final int PANEL_TINT = 0xFFA8E6A3;
-    private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
+    private static final UiTheme TAB_THEME = FeatureTabChrome.themeFromTint(TINT);
 
     private final AbstractChestMenu menu;
 
     public UpgradeSlotsTab(AbstractChestMenu menu) {
         super(
-                Component.translatable("gui.bobbychests.tab.upgrades"),
+                BobbyFonts.translatable("gui.bobbychests.tab.upgrades"),
                 PAD * 2 + SLOT,
                 CONTENT_TOP + menu.getUpgradeSlotCount() * SLOT + PAD);
         this.menu = menu;
         setKeepIconOnExpand(true);
-        setTitleColor(0xFFFFFFFF);
+        setTitleColor(FeatureTabChrome.titleColor(TINT));
         setHandlers(this::onFullyOpen, this::onCloseStarted);
         menu.setUpgradeSlotsActive(false);
     }
@@ -52,23 +49,30 @@ public final class UpgradeSlotsTab extends ExpandableTab {
 
     @Override
     protected void renderPanelBackground(GuiGraphicsExtractor graphics, int x, int y, int w, int h) {
-        ExpandableTab.DefaultPanelStyle.blit(graphics, x, y, w, h, PANEL_TINT);
+        FeatureTabChrome.drawPanel(graphics, TAB_THEME, x, y, w, h);
     }
 
     @Override
     protected void renderIcon(GuiGraphicsExtractor graphics, int x, int y, int mouseX, int mouseY) {
-        ItemStack icon = ModItems.BLANK_UPGRADE_CARD.get().getDefaultInstance();
-        renderItemIcon(graphics, icon, x, y);
+        renderItemIcon(graphics, ModItems.BLANK_UPGRADE_CARD.get().getDefaultInstance(), x, y);
     }
 
     @Override
     protected void renderContent(
             GuiGraphicsExtractor graphics, int x, int y, int mouseX, int mouseY, float partialTick) {
-        for (int i = 0; i < menu.getUpgradeSlotCount(); i++) {
-            // Vanilla: slot.x/y is the 16x16 item origin; container/slot.png is the 18x18 hole at (x-1,y-1).
-            int px = x + PAD - 1;
-            int py = y + CONTENT_TOP + i * SLOT - 1;
-            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, px, py, SLOT, SLOT, PANEL_TINT);
+        int count = menu.getUpgradeSlotCount();
+        for (int i = 0; i < count; i++) {
+            int px = x + PAD;
+            int py = y + CONTENT_TOP + i * SLOT;
+            SlotChrome.drawFrame(
+                    graphics,
+                    TAB_THEME,
+                    UiTheme.SlotStyle.INVENTORY,
+                    px - 1,
+                    py - 1,
+                    false,
+                    true,
+                    i == count - 1);
         }
     }
 }

@@ -2,6 +2,9 @@ package com.bobby.bobbychests.chest.menu;
 
 import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.network.SetScrollableChestScrollPayload;
+import com.bobby.bobbycore.client.gui.layout.GuiLayout;
+import com.bobby.bobbycore.client.gui.scroll.ScrollModel;
+import com.bobby.bobbycore.client.gui.scroll.WindowedContainerSlot;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -37,7 +40,7 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
         }
     }
 
-    private int scrollRows;
+    private final ScrollModel scrollModel;
     private boolean pendingFullStateBroadcast;
     private final int slotsPerRow;
     private final int chestRowsTotal;
@@ -62,6 +65,11 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
         this.slotsPerRow = slotsPerRow;
         this.chestRowsTotal = chestRowsTotal;
         this.chestRowsVisible = chestRowsVisible;
+        this.scrollModel = new ScrollModel(chestRowsVisible, chestRowsTotal);
+    }
+
+    public final ScrollModel scrollModel() {
+        return this.scrollModel;
     }
 
     protected final int slotsPerRow() {
@@ -78,10 +86,10 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
 
     @Override
     public int getUpgradeTabAttachmentOffset() {
-        return 4;
+        // Scrollbar lives inside the widened panel; tab stays flush to the right edge.
+        return 0;
     }
 
-    /** Used by scrollable chest screens. */
     public final int getTotalChestRows() {
         return this.chestRowsTotal();
     }
@@ -99,42 +107,43 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
     }
 
     public final int getScrollRows() {
-        return this.scrollRows;
+        return this.scrollModel.scrollRows();
     }
 
     public int maxScrollRows() {
-        return Math.max(0, this.chestRowsTotal() - this.chestRowsVisible());
+        return this.scrollModel.maxScrollRows();
     }
 
-    /**
-     * Chest grid origin and step in GUI pixels. Must match {@link ScrollWindowSlot} x/y from the tier menu.
-     * {@link com.bobby.bobbychests.client.chest.screen.AbstractScrollableChestScreen} uses these for hit-testing.
-     */
+    @Override
     public int chestSlotGridLeft() {
-        return 8;
+        return GuiLayout.contentSlotOriginX();
     }
 
+    @Override
     public int chestSlotGridTop() {
-        return 18;
+        return GuiLayout.slottedContentTop();
     }
 
+    @Override
     public int chestSlotStep() {
         return 18;
     }
 
     protected int playerInventoryTopY() {
-        return this.chestSlotGridTop() + this.chestRowsVisible() * this.chestSlotStep() + 14;
+        return AbstractChestMenu.playerInventoryTopYBelowGrid(this.chestRowsVisible());
     }
 
     protected final void addScrollableChestSlots(Inventory playerInventory) {
         int step = this.chestSlotStep();
+        this.setChestGridSize(this.slotsPerRow(), this.chestRowsVisible());
         this.chestSlotCount = this.slotsPerRow() * this.chestRowsVisible();
 
         for (int row = 0; row < this.chestRowsVisible(); row++) {
             for (int col = 0; col < this.slotsPerRow(); col++) {
                 int x = this.chestSlotGridLeft() + col * step;
                 int y = this.chestSlotGridTop() + row * step;
-                this.addSlot(new ScrollWindowSlot(this, this.container, row, col, x, y));
+                this.addSlot(new WindowedContainerSlot(
+                        this.container, this::getScrollRows, row, col, this.slotsPerRow(), x, y));
             }
         }
 
@@ -144,35 +153,19 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
         this.addPlayerInventorySlots(playerInventory, playerLeftX, this.playerInventoryTopY());
     }
 
-    /**
-     * When storage identity changes (channel, lock/global-pool swap, networked storage mode flip), both sides must snap
-     * before slot packets are applied. {@link ScrollWindowSlot#set} writes into the logical mirror using
-     * {@link #scrollRows}; if the client still has the old offset, freshly-synced row-zero stacks are stored into the
-     * wrong slice and disappear once the viewport snaps later.
-     */
     public void onGlobalStorageContextChanged() {
+        this.scrollModel.setScrollRows(0);
         if (this.level.isClientSide()) {
-            this.scrollRows = 0;
             return;
         }
-        this.scrollRows = 0;
         this.queueFullStateBroadcast();
     }
 
-    /**
-     * Wheel / scrollbar on the client, or scroll application from {@code SetScrollableChestScrollPayload} on the server.
-     * The client mirror is preserved during scroll so already-synced rows do not flash empty while the full server
-     * state arrives.
-     */
     public void setScrollRows(int rows) {
-        int next = Mth.clamp(rows, 0, this.maxScrollRows());
-        if (next == this.scrollRows) {
+        if (!this.scrollModel.setScrollRows(rows)) {
             return;
         }
-        this.scrollRows = next;
         if (!this.level.isClientSide()) {
-            // Visible menu slot IDs now point at different logical storage slots. A normal incremental broadcast
-            // compares by visible slot ID and can skip equal-looking stacks, leaving the client mirror incomplete.
             this.broadcastFullState();
         }
     }
@@ -277,8 +270,8 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
 
     /** @return {@code true} if the scroll position changed */
     public boolean applyScrollDelta(int deltaRows) {
-        int prev = this.scrollRows;
-        this.setScrollRows(this.scrollRows + deltaRows);
-        return this.scrollRows != prev;
+        int prev = this.getScrollRows();
+        this.setScrollRows(prev + deltaRows);
+        return this.getScrollRows() != prev;
     }
 }

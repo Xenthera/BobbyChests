@@ -12,9 +12,12 @@ import net.minecraft.world.entity.player.Inventory;
 
 import java.util.UUID;
 
+/**
+ * Same panel width as gold (9 columns, 6 visible rows) with scroll for the full 324 slots.
+ */
 public final class NetheriteChestMenu extends AbstractScrollableChestMenu {
-    private static final int SLOTS_PER_ROW = 18;
-    public static final int TOTAL_CHEST_ROWS = 18;
+    private static final int SLOTS_PER_ROW = 9;
+    public static final int TOTAL_CHEST_ROWS = 36;
     private static final int CHEST_ROWS_VISIBLE = 6;
     private static final int STORAGE_SLOTS = SLOTS_PER_ROW * TOTAL_CHEST_ROWS;
 
@@ -68,7 +71,7 @@ public final class NetheriteChestMenu extends AbstractScrollableChestMenu {
 
     @Override
     public int getImageWidthPx() {
-        return AbstractChestMenu.imageWidthChestGridPlusUpgradeStrip(SLOTS_PER_ROW);
+        return AbstractChestMenu.scrollableChestPanelWidthPx(SLOTS_PER_ROW);
     }
 
     @Override

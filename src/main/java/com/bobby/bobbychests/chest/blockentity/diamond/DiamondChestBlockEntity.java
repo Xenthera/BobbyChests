@@ -14,7 +14,7 @@ public final class DiamondChestBlockEntity extends AbstractTieredChestBlockEntit
 
     @Override
     public int getSlotCount() {
-        return 18 * 6; // 108
+        return 9 * 12; // 108
     }
 }
 

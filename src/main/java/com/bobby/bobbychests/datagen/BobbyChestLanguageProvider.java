@@ -24,6 +24,8 @@ public final class BobbyChestLanguageProvider extends LanguageProvider {
         this.add("item.bobbychests.deep_storage_upgrade_card", "Deep Storage Upgrade");
 
         this.add("gui.bobbychests.tab.upgrades", "Upgrades");
+        this.add("gui.bobbychests.tab.lock", "Lock");
+        this.add("gui.bobbychests.tab.network", "Network");
         this.add("gui.bobbychests.upgrade.deny.duplicate", "This upgrade is already installed");
         this.add("gui.bobbychests.upgrade.deny.deep_vs_network", "Cannot use Deep Storage with Networking");
         this.add("gui.bobbychests.upgrade.deny.network_vs_deep", "Cannot use Networking with Deep Storage");
