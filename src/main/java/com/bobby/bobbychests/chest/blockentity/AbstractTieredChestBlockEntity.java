@@ -1,9 +1,15 @@
 package com.bobby.bobbychests.chest.blockentity;
 
+import com.bobby.bobbychests.BobbyChests;
 import com.bobby.bobbychests.chest.storage.ChestContentSorter;
+import com.bobby.bobbychests.chest.storage.ChestResourceContents;
+import com.bobby.bobbychests.chest.storage.ChestResourceMode;
+import com.bobby.bobbychests.chest.storage.ChestResourceTransfer;
 import com.bobby.bobbychests.chest.storage.ChestStorageMode;
+import com.bobby.bobbychests.chest.storage.ChestTransferContainer;
 import com.bobby.bobbychests.chest.storage.DeepStorageStacks;
 import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
+import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.chest.ChestTier;
@@ -16,6 +22,8 @@ import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.Containers;
 import net.minecraft.world.LockCode;
@@ -34,10 +42,13 @@ import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity implements TieredGlobalChest {
@@ -47,6 +58,23 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     private static final String TAG_LOCKED = "bobbychests:locked";
     private static final String TAG_OWNER_UUID = "bobbychests:owner_uuid";
     private static final String TAG_LOCAL_ITEMS = "bobbychests:local_items";
+    private static final String TAG_RESOURCE_MODE = "bobbychests:resource_mode";
+    private static final String TAG_LOCAL_RESOURCES = "bobbychests:local_resources";
+    /** Level shown to clients; in global mode this is a copy of the pool, not this block's own state. */
+    private static final String TAG_DISPLAY_RESOURCES = "bobbychests:display_resources";
+    private static final String TAG_TRANSFER_ITEMS = "bobbychests:transfer_items";
+
+    /**
+     * Minimum ticks between level broadcasts.
+     *
+     * <p>A pipe filling a tank changes the amount many times per second, and each broadcast goes to
+     * every player tracking the chunk, so they are worth spacing out — but only in time. Gating on
+     * the size of the change as well meant small ones were never sent at all.
+     *
+     * <p>Two ticks gives ten updates a second, which reads as live, and {@link #serverTick()}
+     * guarantees anything held back still lands.
+     */
+    private static final int LEVEL_BROADCAST_MIN_TICKS = 2;
 
     private record StoredSlot(int slot, ItemStack stack) {
         private static final Codec<StoredSlot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -58,12 +86,30 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     private final ChestTier tier;
     private int globalStorageId;
     private ChestStorageMode storageMode = ChestStorageMode.LOCAL;
+    private ChestResourceMode resourceMode = ChestResourceMode.ITEM;
     private boolean locked;
     private UUID ownerUuid;
     private final ResourceHandler<ItemResource> itemResourceHandler = new RoutedChestItemResourceHandler(this);
     private final ResourceHandler<ItemResource> voidingItemResourceHandler = new VoidingItemResourceHandler(this, this.itemResourceHandler);
+    private final ResourceHandler<FluidResource> fluidResourceHandler = new RoutedChestFluidResourceHandler(this);
+    private final EnergyHandler energyHandler = new RoutedChestEnergyHandler(this);
     private final ChestUpgradeManager upgradeManager;
     private boolean savingLocalInventory;
+
+    /** Fluid/energy contents when this chest is LOCAL. In GLOBAL mode the pool is used instead. */
+    private final ChestResourceContents localResources = new ChestResourceContents();
+    /** Client-side mirror of whatever storage is active, populated from the update tag. */
+    private final ChestResourceContents displayResources = new ChestResourceContents();
+    /** Bucket/battery in and out slots for a fluid or energy chest. Not storage; see ChestTransferContainer. */
+    private final NonNullList<ItemStack> transferItems = NonNullList.withSize(ChestTransferContainer.SIZE, ItemStack.EMPTY);
+    /** Guards the transfer-on-change / change-on-transfer cycle from recursing. */
+    private boolean runningTransfer;
+    /** Non-zero while {@link #swapMenu} is exchanging menus; see {@link #isSwappingMenu()}. */
+    private int menuSwapDepth;
+    private long lastLevelBroadcastTick = Long.MIN_VALUE;
+    private int lastBroadcastFluidAmount = -1;
+    private int lastBroadcastEnergy = -1;
+    private FluidResource lastBroadcastFluid = FluidResource.EMPTY;
 
     // Loading can happen before the block entity is attached to a level. In that case,
     // wait until setLevel before forcing storage mode to match the installed upgrades.
@@ -99,17 +145,257 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         if (this.getStorageMode() != ChestStorageMode.LOCAL) {
             return false;
         }
+        if (this.getResourceMode() != ChestResourceMode.ITEM) {
+            return false;
+        }
         return this.upgradeManager.capabilities().canUseDeepStorage();
     }
 
-    public abstract int getSlotCount();
+    /** Whether this chest stores items, fluid, or FE. Derived from the installed upgrade cards. */
+    public ChestResourceMode getResourceMode() {
+        return this.resourceMode;
+    }
+
+    public int getFluidCapacityMb() {
+        return this.tier.fluidCapacityMb();
+    }
+
+    public int getEnergyCapacityFe() {
+        return this.tier.energyCapacityFe();
+    }
+
+    /**
+     * The live fluid/energy contents this chest reads and writes.
+     *
+     * <p>Server-side this is the local holder or the shared pool depending on storage mode, so
+     * callers never branch on it. Client-side it is the mirror filled from the update tag, which
+     * is what the screen gauge and the block renderer read.
+     */
+    public ChestResourceContents getActiveResources() {
+        Level level = this.getLevel();
+        if (level == null || level.isClientSide()) {
+            return this.displayResources;
+        }
+        if (this.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
+            return GlobalTieredChestData.get(serverLevel).getResourcesForChest(this);
+        }
+        return this.localResources;
+    }
+
+    /** Call after mutating {@link #getActiveResources()} so the pool persists and clients catch up. */
+    public void onResourcesChanged() {
+        this.setChanged();
+        this.maybeBroadcastResourceLevel(false);
+        // A tank that just gained fluid may now be able to fill a bucket waiting in the input slot.
+        this.runTransferSlots();
+    }
+
+    public NonNullList<ItemStack> getTransferItems() {
+        return this.transferItems;
+    }
+
+    /** Called by {@link ChestTransferContainer} whenever a player moves something in or out. */
+    public void onTransferSlotsChanged() {
+        this.setChanged();
+        this.runTransferSlots();
+    }
+
+    private void runTransferSlots() {
+        if (this.runningTransfer) {
+            return;
+        }
+        if (!(this.getLevel() instanceof ServerLevel)) {
+            return;
+        }
+        if (this.resourceMode == ChestResourceMode.ITEM) {
+            return;
+        }
+        this.runningTransfer = true;
+        try {
+            if (ChestResourceTransfer.run(this, new ChestTransferContainer(this))) {
+                this.setChanged();
+                this.maybeBroadcastResourceLevel(true);
+            }
+        } finally {
+            this.runningTransfer = false;
+        }
+    }
+
+    private void dropTransferItems(Level level, BlockPos pos) {
+        for (int slot = 0; slot < this.transferItems.size(); slot++) {
+            ItemStack stack = this.transferItems.get(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack.copy());
+            this.transferItems.set(slot, ItemStack.EMPTY);
+        }
+    }
+
+    /**
+     * Pushes the current level to clients, subject to {@link #LEVEL_BROADCAST_MIN_TICKS} and
+     * {@link #LEVEL_BROADCAST_MIN_FRACTION} unless {@code force} is set.
+     */
+    private void maybeBroadcastResourceLevel(boolean force) {
+        if (!(this.getLevel() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        if (this.resourceMode == ChestResourceMode.ITEM) {
+            return;
+        }
+
+        // Compare against what the client was last told, rather than tracking a dirty flag. The
+        // comparison cannot get out of step with reality, so a change can never be forgotten.
+        ChestResourceContents active = this.getActiveResources();
+        boolean changed = active.fluidAmount() != this.lastBroadcastFluidAmount
+                || active.energy() != this.lastBroadcastEnergy
+                || !active.fluid().equals(this.lastBroadcastFluid);
+        if (!changed) {
+            return;
+        }
+
+        // Rate limit only. Anything held back here stays different from the last broadcast, so
+        // serverTick picks it up within a tick or two.
+        //
+        // The previous version also required the level to move by 1% of capacity, and silently
+        // dropped anything smaller. On a netherite chest that was 324,000 FE before the gauge would
+        // so much as twitch, and — worse — the final insert before a pipe went idle was usually
+        // under the threshold, so it was discarded and the client stayed stale until the chunk
+        // reloaded. That is the "never updates until I reopen the world" bug.
+        if (!force && serverLevel.getGameTime() - this.lastLevelBroadcastTick < LEVEL_BROADCAST_MIN_TICKS) {
+            return;
+        }
+
+        this.lastLevelBroadcastTick = serverLevel.getGameTime();
+        this.lastBroadcastFluid = active.fluid();
+        this.lastBroadcastFluidAmount = active.fluidAmount();
+        this.lastBroadcastEnergy = active.energy();
+        this.requestClientUpdate();
+    }
+
+    /**
+     * Server tick for fluid and energy chests.
+     *
+     * <p>Exists so a level change always reaches the client eventually. Broadcasting only from the
+     * point of change cannot do that on its own: whatever the rate limit holds back needs something
+     * to come along afterwards and send it, and a chest that fills from a pipe and then goes quiet
+     * has no further change to ride on.
+     *
+     * <p>Also how pooled chests keep in step. Every chest on a shared channel compares the pool
+     * against what it last sent, so they all converge without anyone having to fan updates out.
+     */
+    public void serverTick() {
+        if (this.resourceMode == ChestResourceMode.ITEM) {
+            return;
+        }
+        this.maybeBroadcastResourceLevel(false);
+    }
+
+    /** Item slots this chest stores. Tier-driven so it cannot drift from the tier's tank capacity. */
+    public int getSlotCount() {
+        return this.tier.storageSlots();
+    }
 
     public void onUpgradeInventoryChanged() {
         if (this.level != null && !this.level.isClientSide()) {
+            this.reconcileResourceModeWithUpgrades();
             this.discardDeepStorageContentsIfUpgradeMissing();
             this.reconcileStorageModeWithUpgrades();
             this.reconcileLockedStateWithUpgrades();
         }
+    }
+
+    /**
+     * Follows the fluid/energy cards into the matching resource mode.
+     *
+     * <p>Leaving a fluid or energy mode discards this chest's local contents. The menu refuses to
+     * install a fluid or energy card while the chest holds items, and refuses to swap between
+     * fluid and energy at all, so the only way to reach a discard here is pulling the card back
+     * out — at which point the tank is on screen and the player can see what they are dumping.
+     * Global pools are left alone: they belong to the channel, not to this block.
+     */
+    private void reconcileResourceModeWithUpgrades() {
+        ChestResourceMode target = this.upgradeManager.capabilities().resourceMode();
+        if (target == this.resourceMode) {
+            return;
+        }
+        this.resourceMode = target;
+        if (this.getStorageMode() == ChestStorageMode.LOCAL) {
+            this.localResources.clear();
+        }
+        this.setChanged();
+        // A mode change repaints both the GUI and the block, so it always goes out immediately.
+        this.lastLevelBroadcastTick = Long.MIN_VALUE;
+        this.requestClientUpdate();
+        this.invalidateCapabilitiesForModeChange();
+        // Open menus are not swapped here. See AbstractChestMenu#broadcastChanges: doing it from
+        // inside the click that moved the card is what kept destroying the card.
+    }
+
+    /**
+     * Tells the capability system this block now offers a different capability.
+     *
+     * <p>Adjacent pipes cache their neighbours' capabilities and only re-resolve when the level
+     * says something changed. Without this, a chest that just became a tank keeps looking like an
+     * item chest to everything touching it until the pipe or the chest is broken and replaced.
+     */
+    private void invalidateCapabilitiesForModeChange() {
+        Level level = this.getLevel();
+        if (level == null || level.isClientSide()) {
+            return;
+        }
+        BlockPos pos = this.getBlockPos();
+        level.invalidateCapabilities(pos);
+        // Neighbours cache in both directions, so nudge them into re-resolving as well.
+        for (Direction direction : Direction.values()) {
+            level.invalidateCapabilities(pos.relative(direction));
+        }
+        level.updateNeighborsAt(pos, this.getBlockState().getBlock());
+    }
+
+    /**
+     * Swaps the open screen for anyone looking at this chest.
+     *
+     * <p>The item grid and the tank gauge are different menus, so a card that changes the mode has
+     * to re-open rather than repaint. Deferred to the end of the tick because this runs from inside
+     * the upgrade slot's own click handling, and swapping a player's container mid-click leaves the
+     * click operating on a menu that is no longer theirs.
+     */
+    /**
+     * Swaps {@code player}'s open menu for the one this chest's current mode calls for.
+     *
+     * <p>Called from {@link AbstractChestMenu#broadcastChanges()} once per tick, and only while the
+     * player's cursor is empty. Both conditions matter. Doing it from inside the click that moved
+     * the card meant swapping the container out from under a half-finished operation, and the card
+     * on the cursor belonged to a menu that no longer existed by the time the click wrote it back —
+     * so it vanished. Waiting for an empty cursor means there is simply nothing in flight to lose.
+     *
+     * <p>{@link #isSwappingMenu()} keeps the openers counter quiet through the exchange, so the lid
+     * does not slam and the chest sound does not replay for something the player experiences as the
+     * same chest staying open.
+     */
+    public void swapMenuForResourceMode(ServerPlayer player) {
+        if (!(this.getLevel() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        BlockState state = serverLevel.getBlockState(this.getBlockPos());
+        MenuProvider provider = state.getMenuProvider(serverLevel, this.getBlockPos());
+        if (provider == null) {
+            player.closeContainer();
+            return;
+        }
+
+        this.menuSwapDepth++;
+        try {
+            player.openMenu(provider);
+        } finally {
+            this.menuSwapDepth--;
+        }
+    }
+
+    /** True while a mode change is exchanging one menu for another on the same chest. */
+    public boolean isSwappingMenu() {
+        return this.menuSwapDepth > 0;
     }
 
     private void discardDeepStorageContentsIfUpgradeMissing() {
@@ -293,11 +579,30 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         return this.ownerUuid.equals(player.getUUID());
     }
 
+    /**
+     * Item capability, or null when this chest is a tank or an energy cell.
+     *
+     * <p>Returning null rather than an empty handler is what makes a fluid chest invisible to item
+     * pipes: {@code level.getCapability(Capabilities.Item.BLOCK, ...)} simply finds nothing there.
+     */
     public @Nullable ResourceHandler<ItemResource> getItemResourceHandler(@Nullable Direction side) {
+        if (this.getResourceMode() != ChestResourceMode.ITEM) {
+            return null;
+        }
         if (this.getUpgradeManager().capabilities().canVoidWhenFull()) {
             return this.voidingItemResourceHandler;
         }
         return this.itemResourceHandler;
+    }
+
+    /** Fluid capability, or null unless a fluid upgrade card is installed. */
+    public @Nullable ResourceHandler<FluidResource> getFluidResourceHandler(@Nullable Direction side) {
+        return this.getResourceMode() == ChestResourceMode.FLUID ? this.fluidResourceHandler : null;
+    }
+
+    /** Energy capability, or null unless an energy upgrade card is installed. */
+    public @Nullable EnergyHandler getEnergyHandler(@Nullable Direction side) {
+        return this.getResourceMode() == ChestResourceMode.ENERGY ? this.energyHandler : null;
     }
 
     @Override
@@ -446,6 +751,17 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         this.locked = input.getBooleanOr(TAG_LOCKED, false);
         String uuidStr = input.getStringOr(TAG_OWNER_UUID, "");
         this.ownerUuid = uuidStr.isEmpty() ? null : UUID.fromString(uuidStr);
+        this.resourceMode = ChestResourceMode.fromIdOrDefault(
+                input.getStringOr(TAG_RESOURCE_MODE, ""), ChestResourceMode.ITEM);
+        for (int i = 0; i < this.transferItems.size(); i++) {
+            this.transferItems.set(i, ItemStack.EMPTY);
+        }
+        ContainerHelper.loadAllItems(input.childOrEmpty(TAG_TRANSFER_ITEMS), this.transferItems);
+        input.read(TAG_LOCAL_RESOURCES, ChestResourceContents.CODEC)
+                .ifPresentOrElse(this.localResources::copyFrom, this.localResources::clear);
+        // Only present on client update packets; harmless to read on the server, where it is unused.
+        input.read(TAG_DISPLAY_RESOURCES, ChestResourceContents.CODEC)
+                .ifPresentOrElse(this.displayResources::copyFrom, this.displayResources::clear);
         this.reconcileStorageModeAfterLoad();
     }
 
@@ -462,6 +778,10 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         output.putBoolean(TAG_STORAGE_MODE, this.getStorageMode() == ChestStorageMode.GLOBAL);
         output.putBoolean(TAG_LOCKED, this.locked);
         output.putString(TAG_OWNER_UUID, this.ownerUuid == null ? "" : this.ownerUuid.toString());
+        output.putString(TAG_RESOURCE_MODE, this.resourceMode.id());
+        ContainerHelper.saveAllItems(output.child(TAG_TRANSFER_ITEMS), this.transferItems);
+        // Only this block's own tank, never the shared pool: that belongs to GlobalTieredChestData.
+        output.store(TAG_LOCAL_RESOURCES, ChestResourceContents.CODEC, this.localResources);
         this.saveLocalItems(output);
         this.upgradeManager.save(output);
     }
@@ -473,6 +793,13 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         tag.putBoolean(TAG_STORAGE_MODE, this.getStorageMode() == ChestStorageMode.GLOBAL);
         tag.putBoolean(TAG_LOCKED, this.locked);
         tag.putString(TAG_OWNER_UUID, this.ownerUuid == null ? "" : this.ownerUuid.toString());
+        tag.putString(TAG_RESOURCE_MODE, this.resourceMode.id());
+        // Whatever storage is actually live, so the client mirror is right in both LOCAL and GLOBAL.
+        ChestResourceContents active = this.getActiveResources();
+        ChestResourceContents.CODEC
+                .encodeStart(registries.createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE), active)
+                .resultOrPartial(BobbyChests.LOGGER::error)
+                .ifPresent(encoded -> tag.put(TAG_DISPLAY_RESOURCES, encoded));
         return tag;
     }
 
@@ -595,6 +922,14 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         }
         if (level != null && !level.isClientSide()) {
             this.upgradeManager.dropContents(level, pos);
+            // Only reached without a retain card; with one, the early return above leaves these to
+            // travel on the dropped chest item alongside everything else it saved.
+            this.dropTransferItems(level, pos);
+        }
+        // Fluid and FE cannot be spilled as entities, so without a retain card they are simply gone.
+        // The retain path above returns before this, having copied them onto the dropped chest item.
+        if (level != null && !level.isClientSide() && this.getStorageMode() == ChestStorageMode.LOCAL) {
+            this.localResources.clear();
         }
         if (this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel) {
             this.dropLocalItems(this.getLevel(), pos);

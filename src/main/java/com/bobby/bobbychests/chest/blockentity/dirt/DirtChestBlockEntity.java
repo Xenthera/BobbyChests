@@ -12,10 +12,6 @@ public class DirtChestBlockEntity extends AbstractTieredChestBlockEntity {
         super(ModBlockEntities.DIRT_CHEST.get(), worldPosition, blockState, ChestTier.DIRT);
     }
 
-    @Override
-    public int getSlotCount() {
-        return 1;
-    }
 
     @Override
     protected boolean supportsDeepStorage() {

@@ -23,7 +23,9 @@ public final class BobbyChestItemTags extends ItemTagsProvider {
                 ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get(),
                 ModItems.RETAIN_ITEMS_UPGRADE_CARD.get(),
                 ModItems.LOCK_UPGRADE_CARD.get(),
-                ModItems.DEEP_STORAGE_UPGRADE_CARD.get()
+                ModItems.DEEP_STORAGE_UPGRADE_CARD.get(),
+                ModItems.FLUID_UPGRADE_CARD.get(),
+                ModItems.ENERGY_UPGRADE_CARD.get()
         );
 
         for (BobbyChestData.ChestDefinition chest : BobbyChestData.CHESTS) {

@@ -1,5 +1,6 @@
 package com.bobby.bobbychests;
 
+import com.bobby.bobbychests.chest.ChestHandTransferHandler;
 import com.bobby.bobbychests.chest.menu.TieredChestLogoutHandler;
 import com.bobby.bobbychests.command.ModCommands;
 import com.bobby.bobbychests.datagen.DataGenerators;
@@ -57,6 +58,8 @@ public class BobbyChests {
                 output.accept(ModItems.RETAIN_ITEMS_UPGRADE_CARD.get());
                 output.accept(ModItems.LOCK_UPGRADE_CARD.get());
                 output.accept(ModItems.DEEP_STORAGE_UPGRADE_CARD.get());
+                output.accept(ModItems.FLUID_UPGRADE_CARD.get());
+                output.accept(ModItems.ENERGY_UPGRADE_CARD.get());
             }).build());
 
     public BobbyChests(IEventBus modEventBus, ModContainer modContainer) {
@@ -73,6 +76,7 @@ public class BobbyChests {
         CREATIVE_MODE_TABS.register(modEventBus);
 
         NeoForge.EVENT_BUS.addListener(TieredChestLogoutHandler::onPlayerLoggedOut);
+        NeoForge.EVENT_BUS.addListener(ChestHandTransferHandler::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(ModCommands::register);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);

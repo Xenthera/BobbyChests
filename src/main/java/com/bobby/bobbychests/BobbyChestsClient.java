@@ -16,6 +16,8 @@ import com.bobby.bobbychests.client.chest.screen.emerald.EmeraldChestScreen;
 import com.bobby.bobbychests.client.chest.screen.gold.GoldChestScreen;
 import com.bobby.bobbychests.client.chest.screen.iron.IronChestScreen;
 import com.bobby.bobbychests.client.chest.screen.netherite.NetheriteChestScreen;
+import com.bobby.bobbychests.client.chest.screen.resource.EnergyChestScreen;
+import com.bobby.bobbychests.client.chest.screen.resource.FluidChestScreen;
 import com.bobby.bobbychests.client.chest.screen.wooden.WoodenChestScreen;
 import com.bobby.bobbychests.registry.ModMenus;
 import net.minecraft.client.Minecraft;
@@ -69,5 +71,7 @@ public class BobbyChestsClient {
         event.register(ModMenus.EMERALD_CHEST_MENU.get(), EmeraldChestScreen::new);
         event.register(ModMenus.NETHERITE_CHEST_MENU.get(), NetheriteChestScreen::new);
         event.register(ModMenus.DIRT_CHEST_MENU.get(), DirtChestScreen::new);
+        event.register(ModMenus.FLUID_CHEST_MENU.get(), FluidChestScreen::new);
+        event.register(ModMenus.ENERGY_CHEST_MENU.get(), EnergyChestScreen::new);
     }
 }

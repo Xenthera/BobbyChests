@@ -12,9 +12,5 @@ public class GoldChestBlockEntity extends AbstractTieredChestBlockEntity {
         super(ModBlockEntities.GOLD_CHEST.get(), worldPosition, blockState, ChestTier.GOLD);
     }
 
-    @Override
-    public int getSlotCount() {
-        return 54;
-    }
 }
 

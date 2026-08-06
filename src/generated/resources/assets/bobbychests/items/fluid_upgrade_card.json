@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "bobbychests:item/fluid_upgrade_card"
+  }
+}

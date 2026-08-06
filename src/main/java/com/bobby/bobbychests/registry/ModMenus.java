@@ -8,6 +8,8 @@ import com.bobby.bobbychests.chest.menu.emerald.EmeraldChestMenu;
 import com.bobby.bobbychests.chest.menu.gold.GoldChestMenu;
 import com.bobby.bobbychests.chest.menu.iron.IronChestMenu;
 import com.bobby.bobbychests.chest.menu.netherite.NetheriteChestMenu;
+import com.bobby.bobbychests.chest.menu.resource.EnergyChestMenu;
+import com.bobby.bobbychests.chest.menu.resource.FluidChestMenu;
 import com.bobby.bobbychests.chest.menu.wooden.WoodenChestMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
@@ -36,6 +38,14 @@ public final class ModMenus {
             MENUS.register("netherite_chest_menu", () -> IMenuTypeExtension.create(NetheriteChestMenu::clientConstructor));
     public static final Supplier<MenuType<DirtChestMenu>> DIRT_CHEST_MENU =
             MENUS.register("dirt_chest_menu", () -> IMenuTypeExtension.create(DirtChestMenu::clientConstructor));
+
+    // One menu each for fluid and energy, shared by every tier: the layout does not change with
+    // tier, only the capacity, and that arrives in the client payload.
+    public static final Supplier<MenuType<FluidChestMenu>> FLUID_CHEST_MENU =
+            MENUS.register("fluid_chest_menu", () -> IMenuTypeExtension.create(FluidChestMenu::clientConstructor));
+    public static final Supplier<MenuType<EnergyChestMenu>> ENERGY_CHEST_MENU =
+            MENUS.register("energy_chest_menu", () -> IMenuTypeExtension.create(EnergyChestMenu::clientConstructor));
+
     public static void register(IEventBus modBus) {
         MENUS.register(modBus);
     }

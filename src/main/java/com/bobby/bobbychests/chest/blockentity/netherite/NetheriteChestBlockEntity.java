@@ -16,8 +16,4 @@ public final class NetheriteChestBlockEntity extends AbstractTieredChestBlockEnt
         return true;
     }
 
-    @Override
-    public int getSlotCount() {
-        return 9 * 36; // 324
-    }
 }

@@ -2,6 +2,7 @@ package com.bobby.bobbychests.chest.blockentity;
 
 import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.storage.ChestStorageMode;
+import com.bobby.bobbychests.chest.storage.ChestTransferContainer;
 import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
 import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
 import net.minecraft.core.BlockPos;
@@ -30,16 +31,30 @@ final class TieredChestOpenersCounter extends ContainerOpenersCounter {
         if (container == this.chest) {
             return true;
         }
-        return container instanceof RoutedChestContainer routed && routed.getChest() == this.chest;
+        if (container instanceof RoutedChestContainer routed && routed.getChest() == this.chest) {
+            return true;
+        }
+        // Fluid and energy menus are backed by the transfer slots rather than the storage grid, and
+        // the counter has to recognise those too or their lid never opens.
+        return container instanceof ChestTransferContainer transfer && transfer.getChest() == this.chest;
     }
 
     @Override
     protected void onOpen(Level level, BlockPos pos, BlockState state) {
+        // Swapping the item menu for the tank menu closes one container and opens another, which
+        // would otherwise slam the lid and play the chest sound twice for something the player
+        // experiences as the same chest staying open.
+        if (this.chest.isSwappingMenu()) {
+            return;
+        }
         this.playChestSound(level, pos, state, true);
     }
 
     @Override
     protected void onClose(Level level, BlockPos pos, BlockState state) {
+        if (this.chest.isSwappingMenu()) {
+            return;
+        }
         if (this.chest.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
             GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
             GlobalTieredChestData.StorageKey key = data.keyForChest(this.chest);
@@ -52,6 +67,11 @@ final class TieredChestOpenersCounter extends ContainerOpenersCounter {
 
     @Override
     protected void openerCountChanged(Level level, BlockPos pos, BlockState state, int oldCount, int newCount) {
+        // The count dips to zero and back within a single menu swap. Signalling that would animate
+        // the lid shut and open again, and would pulse observers watching the chest.
+        if (this.chest.isSwappingMenu()) {
+            return;
+        }
         if (this.chest.getStorageMode() == ChestStorageMode.GLOBAL && level instanceof ServerLevel serverLevel) {
             GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
             GlobalTieredChestData.StorageKey key = data.keyForChest(this.chest);

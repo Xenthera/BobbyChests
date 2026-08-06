@@ -12,9 +12,5 @@ public class CopperChestBlockEntity extends AbstractTieredChestBlockEntity {
         super(ModBlockEntities.COPPER_CHEST.get(), worldPosition, blockState, ChestTier.COPPER);
     }
 
-    @Override
-    public int getSlotCount() {
-        return 18;
-    }
 }
 

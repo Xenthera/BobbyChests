@@ -1,0 +1,281 @@
+{
+  "sources": [
+    {
+      "type": "bobbychests:chest_composite",
+      "entries": [
+        {
+          "base": "bobbychests:entity/chest/dirt_chest_no_id",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/dirt_chest_fluid_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/dirt_chest",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/dirt_chest_fluid",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/dirt_chest_no_id",
+          "output": "bobbychests:entity/chest/dirt_chest_energy_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/dirt_chest",
+          "output": "bobbychests:entity/chest/dirt_chest_energy",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/wooden_chest_no_id",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/wooden_chest_fluid_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/wooden_chest",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/wooden_chest_fluid",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/wooden_chest_no_id",
+          "output": "bobbychests:entity/chest/wooden_chest_energy_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/wooden_chest",
+          "output": "bobbychests:entity/chest/wooden_chest_energy",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/copper_chest_no_id",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/copper_chest_fluid_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/copper_chest",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/copper_chest_fluid",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/copper_chest_no_id",
+          "output": "bobbychests:entity/chest/copper_chest_energy_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/copper_chest",
+          "output": "bobbychests:entity/chest/copper_chest_energy",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/iron_chest_no_id",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/iron_chest_fluid_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/iron_chest",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/iron_chest_fluid",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/iron_chest_no_id",
+          "output": "bobbychests:entity/chest/iron_chest_energy_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/iron_chest",
+          "output": "bobbychests:entity/chest/iron_chest_energy",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/gold_chest_no_id",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/gold_chest_fluid_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/gold_chest",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/gold_chest_fluid",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/gold_chest_no_id",
+          "output": "bobbychests:entity/chest/gold_chest_energy_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/gold_chest",
+          "output": "bobbychests:entity/chest/gold_chest_energy",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/diamond_chest_no_id",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/diamond_chest_fluid_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/diamond_chest",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/diamond_chest_fluid",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/diamond_chest_no_id",
+          "output": "bobbychests:entity/chest/diamond_chest_energy_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/diamond_chest",
+          "output": "bobbychests:entity/chest/diamond_chest_energy",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/emerald_chest_no_id",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/emerald_chest_fluid_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/emerald_chest",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/emerald_chest_fluid",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/emerald_chest_no_id",
+          "output": "bobbychests:entity/chest/emerald_chest_energy_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/emerald_chest",
+          "output": "bobbychests:entity/chest/emerald_chest_energy",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/netherite_chest_no_id",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/netherite_chest_fluid_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/netherite_chest",
+          "cutouts": [
+            "bobbychests:overlay/chest/fluid_window_cutout"
+          ],
+          "output": "bobbychests:entity/chest/netherite_chest_fluid",
+          "overlays": [
+            "bobbychests:overlay/chest/fluid_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/netherite_chest_no_id",
+          "output": "bobbychests:entity/chest/netherite_chest_energy_no_id",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        },
+        {
+          "base": "bobbychests:entity/chest/netherite_chest",
+          "output": "bobbychests:entity/chest/netherite_chest_energy",
+          "overlays": [
+            "bobbychests:overlay/chest/energy_window"
+          ]
+        }
+      ]
+    }
+  ]
+}

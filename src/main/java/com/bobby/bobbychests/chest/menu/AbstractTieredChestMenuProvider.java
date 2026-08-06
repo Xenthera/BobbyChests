@@ -53,6 +53,7 @@ public abstract class AbstractTieredChestMenuProvider implements MenuProvider, I
         buf.writeBoolean(this.chest.isLocked());
         buf.writeUtf(this.chest.getOwnerUuid() == null ? "" : this.chest.getOwnerUuid().toString());
         buf.writeBoolean(this.usesGlobalStorage());
+        buf.writeUtf(this.chest.getTier().id());
     }
 
     @Override

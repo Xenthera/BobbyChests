@@ -12,10 +12,6 @@ public class WoodenChestBlockEntity extends AbstractTieredChestBlockEntity {
         super(ModBlockEntities.WOODEN_CHEST.get(), worldPosition, blockState, ChestTier.WOOD);
     }
 
-    @Override
-    public int getSlotCount() {
-        return 9;
-    }
 
     @Override
     protected boolean supportsDeepStorage() {

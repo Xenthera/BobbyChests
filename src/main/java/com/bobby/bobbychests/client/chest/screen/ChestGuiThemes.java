@@ -7,7 +7,9 @@ import com.bobby.bobbychests.chest.menu.dirt.DirtChestMenu;
 import com.bobby.bobbychests.chest.menu.emerald.EmeraldChestMenu;
 import com.bobby.bobbychests.chest.menu.gold.GoldChestMenu;
 import com.bobby.bobbychests.chest.menu.iron.IronChestMenu;
+import com.bobby.bobbychests.chest.ChestTier;
 import com.bobby.bobbychests.chest.menu.netherite.NetheriteChestMenu;
+import com.bobby.bobbychests.chest.menu.resource.AbstractResourceChestMenu;
 import com.bobby.bobbychests.chest.menu.wooden.WoodenChestMenu;
 import com.bobby.bobbycore.client.gui.theme.BobbyThemes;
 import com.bobby.bobbycore.client.gui.theme.UiTheme;
@@ -28,7 +30,26 @@ public final class ChestGuiThemes {
     private ChestGuiThemes() {
     }
 
+    /** Tint for a tier, independent of which menu is showing it. */
+    public static UiTheme forTier(ChestTier tier) {
+        return switch (tier) {
+            case DIRT -> DIRT;
+            case WOOD -> WOOD;
+            case COPPER -> COPPER;
+            case IRON -> IRON;
+            case GOLD -> GOLD;
+            case DIAMOND -> DIAMOND;
+            case EMERALD -> EMERALD;
+            case NETHERITE -> NETHERITE;
+        };
+    }
+
     public static UiTheme forMenu(AbstractChestMenu menu) {
+        // Fluid and energy chests share one menu class across every tier, so they carry their tier
+        // as data and cannot be identified by type the way the item menus below are.
+        if (menu instanceof AbstractResourceChestMenu resourceMenu) {
+            return forTier(resourceMenu.getTier());
+        }
         if (menu instanceof DirtChestMenu) {
             return DIRT;
         }

@@ -1,6 +1,10 @@
 package com.bobby.bobbychests.datagen;
 
 import com.bobby.bobbychests.BobbyChests;
+import com.bobby.bobbychests.chest.ChestSpriteNames;
+import com.bobby.bobbychests.chest.ChestTier;
+import com.bobby.bobbychests.chest.storage.ChestResourceMode;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
@@ -15,11 +19,13 @@ public final class BobbyChestAssetProvider implements DataProvider {
     private final PackOutput.PathProvider blockstatePathProvider;
     private final PackOutput.PathProvider modelPathProvider;
     private final PackOutput.PathProvider itemDefinitionPathProvider;
+    private final PackOutput.PathProvider atlasPathProvider;
 
     public BobbyChestAssetProvider(PackOutput output) {
         this.blockstatePathProvider = output.createPathProvider(PackOutput.Target.RESOURCE_PACK, "blockstates");
         this.modelPathProvider = output.createPathProvider(PackOutput.Target.RESOURCE_PACK, "models");
         this.itemDefinitionPathProvider = output.createPathProvider(PackOutput.Target.RESOURCE_PACK, "items");
+        this.atlasPathProvider = output.createPathProvider(PackOutput.Target.RESOURCE_PACK, "atlases");
     }
 
     @Override
@@ -44,12 +50,67 @@ public final class BobbyChestAssetProvider implements DataProvider {
         futures.addAll(upgradeCardAssets(output, "retain_items_upgrade_card", "retain_items_upgrade_card"));
         futures.addAll(upgradeCardAssets(output, "lock_upgrade_card", "lock_upgrade_card"));
         futures.addAll(upgradeCardAssets(output, "deep_storage_upgrade_card", "deep_storage_upgrade_card"));
+        futures.addAll(upgradeCardAssets(output, "fluid_upgrade_card", "fluid_upgrade_card"));
+        futures.addAll(upgradeCardAssets(output, "energy_upgrade_card", "energy_upgrade_card"));
+
+        futures.add(DataProvider.saveStable(
+                output,
+                chestAtlas(),
+                this.atlasPathProvider.json(Identifier.withDefaultNamespace("chests"))));
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
     }
 
     @Override
     public String getName() {
         return "BobbyChests Chest Assets";
+    }
+
+    /**
+     * Declares the composited fluid and energy chest sprites.
+     *
+     * <p>Written into {@code assets/minecraft/atlases/chests.json}, which is appended to vanilla's
+     * definition rather than replacing it: the atlas loader reads the whole resource stack, so the
+     * vanilla chest sprites and our own directory-scanned tier textures keep loading alongside it.
+     *
+     * <p>Generated rather than hand-written because it is thirty-two near-identical entries — every
+     * tier, times fluid and energy, times the with-channel and without-channel textures.
+     */
+    private static JsonObject chestAtlas() {
+        JsonArray entries = new JsonArray();
+        for (ChestTier tier : ChestTier.values()) {
+            for (ChestResourceMode mode : ChestResourceMode.values()) {
+                if (mode == ChestResourceMode.ITEM) {
+                    // Already authored as real PNGs; nothing to composite.
+                    continue;
+                }
+                for (boolean global : new boolean[] {false, true}) {
+                    JsonObject entry = new JsonObject();
+                    entry.addProperty("output", ChestSpriteNames.spriteId(tier, mode, global).toString());
+                    entry.addProperty("base", ChestSpriteNames.baseSpriteId(tier, global).toString());
+                    JsonArray overlays = new JsonArray();
+                    overlays.add(ChestSpriteNames.overlayId(mode).toString());
+                    entry.add("overlays", overlays);
+                    // Only fluid cuts a real hole. Energy keeps its wall and just wears a meter.
+                    if (mode == ChestResourceMode.FLUID) {
+                        JsonArray cutouts = new JsonArray();
+                        cutouts.add(ChestSpriteNames.cutoutId(mode).toString());
+                        entry.add("cutouts", cutouts);
+                    }
+                    entries.add(entry);
+                }
+            }
+        }
+
+        JsonObject source = new JsonObject();
+        source.addProperty("type", ChestSpriteNames.CHEST_COMPOSITE_SOURCE.toString());
+        source.add("entries", entries);
+
+        JsonArray sources = new JsonArray();
+        sources.add(source);
+
+        JsonObject root = new JsonObject();
+        root.add("sources", sources);
+        return root;
     }
 
     private static JsonObject blockstate(BobbyChestData.ChestDefinition chest) {

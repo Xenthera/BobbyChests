@@ -38,9 +38,22 @@ public class GlobalTieredChestData extends SavedData {
         ).apply(instance, StorageEntry::new));
     }
 
+    /** Fluid and energy counterpart to {@link StorageEntry}, keyed the same (tier, owner, id) way. */
+    private record ResourceEntry(String tier, String owner, int id, ChestResourceContents contents) {
+        static final Codec<ResourceEntry> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.STRING.optionalFieldOf("Tier", "").forGetter(ResourceEntry::tier),
+                Codec.STRING.optionalFieldOf("Owner", "").forGetter(ResourceEntry::owner),
+                Codec.INT.fieldOf("Id").forGetter(ResourceEntry::id),
+                ChestResourceContents.CODEC.fieldOf("Contents").forGetter(ResourceEntry::contents)
+        ).apply(instance, ResourceEntry::new));
+    }
+
     // How Minecraft serializes this SavedData instance to disk (and back).
+    // "Resources" is optional and defaults to empty so worlds saved before fluid/energy chests existed
+    // keep loading untouched.
     public static final Codec<GlobalTieredChestData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            StorageEntry.CODEC.listOf().optionalFieldOf("Storages", List.of()).forGetter(GlobalTieredChestData::toEntryList)
+            StorageEntry.CODEC.listOf().optionalFieldOf("Storages", List.of()).forGetter(GlobalTieredChestData::toEntryList),
+            ResourceEntry.CODEC.listOf().optionalFieldOf("Resources", List.of()).forGetter(GlobalTieredChestData::toResourceEntryList)
     ).apply(instance, GlobalTieredChestData::fromEntries));
 
     /**
@@ -55,6 +68,11 @@ public class GlobalTieredChestData extends SavedData {
     private final Map<ChestTier, Map<Integer, NonNullList<ItemStack>>> publicStorages;
     private final Map<UUID, Map<ChestTier, Map<Integer, NonNullList<ItemStack>>>> privateStorages;
 
+    // Fluid/energy pools, kept wholly separate from the item pools above: a fluid chest on channel 5
+    // and an item chest on channel 5 are different storages that happen to share a channel number.
+    private final Map<ChestTier, Map<Integer, ChestResourceContents>> publicResources;
+    private final Map<UUID, Map<ChestTier, Map<Integer, ChestResourceContents>>> privateResources;
+
     // Runtime-only index so we can notify comparators for all chests on the same key.
     private final Map<StorageKey, Set<DimPos>> attachedChests = new HashMap<>();
     private final Map<DimPos, StorageKey> chestIndex = new HashMap<>();
@@ -64,13 +82,19 @@ public class GlobalTieredChestData extends SavedData {
     public GlobalTieredChestData() {
         this.publicStorages = new HashMap<>();
         this.privateStorages = new HashMap<>();
+        this.publicResources = new HashMap<>();
+        this.privateResources = new HashMap<>();
     }
 
     /** Used when loading from disk (Codec path). */
     private GlobalTieredChestData(Map<ChestTier, Map<Integer, NonNullList<ItemStack>>> publicStorages,
-                                  Map<UUID, Map<ChestTier, Map<Integer, NonNullList<ItemStack>>>> privateStorages) {
+                                  Map<UUID, Map<ChestTier, Map<Integer, NonNullList<ItemStack>>>> privateStorages,
+                                  Map<ChestTier, Map<Integer, ChestResourceContents>> publicResources,
+                                  Map<UUID, Map<ChestTier, Map<Integer, ChestResourceContents>>> privateResources) {
         this.publicStorages = publicStorages;
         this.privateStorages = privateStorages;
+        this.publicResources = publicResources;
+        this.privateResources = privateResources;
     }
 
     private static NonNullList<ItemStack> resizedCopy(List<ItemStack> list, int slotCount) {
@@ -81,9 +105,23 @@ public class GlobalTieredChestData extends SavedData {
         return items;
     }
 
-    private static GlobalTieredChestData fromEntries(List<StorageEntry> entries) {
+    private static GlobalTieredChestData fromEntries(List<StorageEntry> entries, List<ResourceEntry> resourceEntries) {
         Map<ChestTier, Map<Integer, NonNullList<ItemStack>>> publicStorages = new HashMap<>();
         Map<UUID, Map<ChestTier, Map<Integer, NonNullList<ItemStack>>>> privateStorages = new HashMap<>();
+        Map<ChestTier, Map<Integer, ChestResourceContents>> publicResources = new HashMap<>();
+        Map<UUID, Map<ChestTier, Map<Integer, ChestResourceContents>>> privateResources = new HashMap<>();
+        for (ResourceEntry entry : resourceEntries) {
+            ChestTier tier = ChestTier.fromIdOrDefault(entry.tier(), ChestTier.WOOD);
+            ChestResourceContents contents = entry.contents().copy();
+            if (entry.owner() == null || entry.owner().isEmpty()) {
+                publicResources.computeIfAbsent(tier, ignored -> new HashMap<>()).put(entry.id(), contents);
+                continue;
+            }
+            privateResources
+                    .computeIfAbsent(UUID.fromString(entry.owner()), ignored -> new HashMap<>())
+                    .computeIfAbsent(tier, ignored -> new HashMap<>())
+                    .put(entry.id(), contents);
+        }
         for (StorageEntry entry : entries) {
             // If the tier is missing (older saves), treat it as WOOD. It's the only tier currently in the mod.
             ChestTier tier = ChestTier.fromIdOrDefault(entry.tier(), ChestTier.WOOD);
@@ -103,7 +141,37 @@ public class GlobalTieredChestData extends SavedData {
             Map<Integer, NonNullList<ItemStack>> byId = byTier.computeIfAbsent(tier, ignored -> new HashMap<>());
             byId.put(entry.id(), loaded);
         }
-        return new GlobalTieredChestData(publicStorages, privateStorages);
+        return new GlobalTieredChestData(publicStorages, privateStorages, publicResources, privateResources);
+    }
+
+    private List<ResourceEntry> toResourceEntryList() {
+        if (this.publicResources.isEmpty() && this.privateResources.isEmpty()) {
+            return List.of();
+        }
+        List<ResourceEntry> entries = new ArrayList<>();
+        for (var tierEntry : this.publicResources.entrySet()) {
+            String tier = tierEntry.getKey().id();
+            for (var e : tierEntry.getValue().entrySet()) {
+                // Skip drained storages so an empty channel someone once opened does not live on disk forever.
+                if (e.getValue().isEmpty()) {
+                    continue;
+                }
+                entries.add(new ResourceEntry(tier, "", e.getKey(), e.getValue().copy()));
+            }
+        }
+        for (var ownerEntry : this.privateResources.entrySet()) {
+            String owner = ownerEntry.getKey().toString();
+            for (var tierEntry : ownerEntry.getValue().entrySet()) {
+                String tier = tierEntry.getKey().id();
+                for (var e : tierEntry.getValue().entrySet()) {
+                    if (e.getValue().isEmpty()) {
+                        continue;
+                    }
+                    entries.add(new ResourceEntry(tier, owner, e.getKey(), e.getValue().copy()));
+                }
+            }
+        }
+        return entries;
     }
 
     private List<StorageEntry> toEntryList() {
@@ -171,6 +239,26 @@ public class GlobalTieredChestData extends SavedData {
             return getItemsPrivate(chest.getTier(), chest.getOwnerUuid(), id, slotCount);
         }
         return getItemsPublic(chest.getTier(), id, slotCount);
+    }
+
+    /**
+     * The shared fluid/energy contents for {@code chest}'s current storage key.
+     *
+     * <p>Mirrors {@link #getItemsForChest} exactly: locked chests read the owner's private pool,
+     * everything else reads the public one. The returned holder is live, so callers mutate it in
+     * place and then {@link #markChangedAndNotify} to persist and notify.
+     */
+    public ChestResourceContents getResourcesForChest(AbstractTieredChestBlockEntity chest) {
+        int id = chest.getGlobalStorageId();
+        if (chest.isLocked() && chest.getOwnerUuid() != null) {
+            return this.privateResources
+                    .computeIfAbsent(chest.getOwnerUuid(), ignored -> new HashMap<>())
+                    .computeIfAbsent(chest.getTier(), ignored -> new HashMap<>())
+                    .computeIfAbsent(id, ignored -> new ChestResourceContents());
+        }
+        return this.publicResources
+                .computeIfAbsent(chest.getTier(), ignored -> new HashMap<>())
+                .computeIfAbsent(id, ignored -> new ChestResourceContents());
     }
 
     /**
@@ -432,6 +520,8 @@ public class GlobalTieredChestData extends SavedData {
     public void clearAllItems() {
         this.publicStorages.clear();
         this.privateStorages.clear();
+        this.publicResources.clear();
+        this.privateResources.clear();
         this.setDirty();
     }
 }

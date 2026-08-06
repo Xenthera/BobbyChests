@@ -59,52 +59,28 @@ public final class ChestUpgradeManager {
         return stack.getItem() instanceof ChestUpgradeCardItem || stack.is(BobbyChestTags.UPGRADE_CARDS);
     }
 
-    /** Current capabilities from whichever upgrade slots hold matching cards (any slot). */
-    public ChestUpgradeCapabilities capabilities() {
-        Item networking = ModItems.NETWORKING_UPGRADE_CARD.get();
-        Item infinite = ModItems.INFINITE_UPGRADE_CARD.get();
-        Item voidCard = ModItems.VOID_UPGRADE_CARD.get();
-        Item leaveLast = ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get();
-        Item retain = ModItems.RETAIN_ITEMS_UPGRADE_CARD.get();
-        Item lock = ModItems.LOCK_UPGRADE_CARD.get();
-        Item deep = ModItems.DEEP_STORAGE_UPGRADE_CARD.get();
-        boolean networkingPresent = false;
-        boolean infinitePresent = false;
-        boolean voidPresent = false;
-        boolean leaveLastPresent = false;
-        boolean retainPresent = false;
-        boolean lockPresent = false;
-        boolean deepPresent = false;
+    /** True when any upgrade slot holds {@code card}. */
+    private boolean has(Item card) {
         for (ItemStack stack : this.stacks) {
-            if (stack.isEmpty()) {
-                continue;
-            }
-            if (stack.getItem() == networking) {
-                networkingPresent = true;
-            }
-            if (stack.getItem() == infinite) {
-                infinitePresent = true;
-            }
-            if (stack.getItem() == voidCard) {
-                voidPresent = true;
-            }
-            if (stack.getItem() == leaveLast) {
-                leaveLastPresent = true;
-            }
-            if (stack.getItem() == retain) {
-                retainPresent = true;
-            }
-            if (stack.getItem() == lock) {
-                lockPresent = true;
-            }
-            if (stack.getItem() == deep) {
-                deepPresent = true;
-            }
-            if (networkingPresent && infinitePresent && voidPresent && leaveLastPresent && retainPresent && lockPresent && deepPresent) {
-                break;
+            if (!stack.isEmpty() && stack.getItem() == card) {
+                return true;
             }
         }
-        return new ChestUpgradeCapabilities(networkingPresent, infinitePresent, voidPresent, leaveLastPresent, retainPresent, lockPresent, deepPresent);
+        return false;
+    }
+
+    /** Current capabilities from whichever upgrade slots hold matching cards (any slot). */
+    public ChestUpgradeCapabilities capabilities() {
+        return new ChestUpgradeCapabilities(
+                this.has(ModItems.NETWORKING_UPGRADE_CARD.get()),
+                this.has(ModItems.INFINITE_UPGRADE_CARD.get()),
+                this.has(ModItems.VOID_UPGRADE_CARD.get()),
+                this.has(ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get()),
+                this.has(ModItems.RETAIN_ITEMS_UPGRADE_CARD.get()),
+                this.has(ModItems.LOCK_UPGRADE_CARD.get()),
+                this.has(ModItems.DEEP_STORAGE_UPGRADE_CARD.get()),
+                this.has(ModItems.FLUID_UPGRADE_CARD.get()),
+                this.has(ModItems.ENERGY_UPGRADE_CARD.get()));
     }
 
     public void onContentsChanged() {

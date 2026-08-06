@@ -1,6 +1,9 @@
 package com.bobby.bobbychests.chest.menu;
 
 import com.bobby.bobbychests.chest.ChestTier;
+import net.minecraft.server.level.ServerPlayer;
+import com.bobby.bobbychests.chest.storage.ChestResourceMode;
+import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.chest.storage.DeepStorageStacks;
 import com.bobby.bobbychests.registry.ModItems;
@@ -76,7 +79,8 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
             int initialChestId,
             boolean initialLocked,
             UUID initialOwnerUuid,
-            boolean initialUsingGlobalStorage) {
+            boolean initialUsingGlobalStorage,
+            ChestTier tier) {
 
         public static TieredChestClientPayload read(RegistryFriendlyByteBuf buf) {
             BlockPos chestPos = buf.readBlockPos();
@@ -86,7 +90,10 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
             String owner = buf.readUtf();
             UUID initialOwnerUuid = owner.isEmpty() ? null : UUID.fromString(owner);
             boolean initialUsingGlobalStorage = buf.readBoolean();
-            return new TieredChestClientPayload(chestPos, maxChannelId, initialChestId, initialLocked, initialOwnerUuid, initialUsingGlobalStorage);
+            // The fluid and energy menus are shared across tiers, so unlike the per-tier item menus
+            // they cannot infer capacity or theme from their own class and need it sent.
+            ChestTier tier = ChestTier.fromIdOrDefault(buf.readUtf(), ChestTier.WOOD);
+            return new TieredChestClientPayload(chestPos, maxChannelId, initialChestId, initialLocked, initialOwnerUuid, initialUsingGlobalStorage, tier);
         }
     }
 
@@ -154,6 +161,8 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     protected final Container container;
     protected final Container upgradeContainer;
     protected final Level level;
+    /** The player this menu was opened for; needed to swap it when an upgrade changes the mode. */
+    private final Player viewingPlayer;
     protected final BlockPos chestPos;
     protected final int initialChestId;
     protected final boolean initialLocked;
@@ -185,6 +194,7 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
         this.container = Objects.requireNonNull(container);
         this.upgradeContainer = Objects.requireNonNull(upgradeContainer);
         this.level = playerInventory.player.level();
+        this.viewingPlayer = playerInventory.player;
         this.chestPos = chestPos;
         this.initialChestId = initialChestId;
         this.initialLocked = initialLocked;
@@ -334,6 +344,18 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
 
         Item deep = ModItems.DEEP_STORAGE_UPGRADE_CARD.get();
         Item networking = ModItems.NETWORKING_UPGRADE_CARD.get();
+        Item leaveLast = ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get();
+        Item fluid = ModItems.FLUID_UPGRADE_CARD.get();
+        Item energy = ModItems.ENERGY_UPGRADE_CARD.get();
+        boolean switchesResource = item == fluid || item == energy;
+
+        // Switching a chest away from items would have to do something with the items already in it.
+        // Rather than dropping them or hiding them, refuse while it is non-empty and let the player
+        // clear it out deliberately.
+        if (switchesResource && this.hasStoredItems()) {
+            return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.not_empty"));
+        }
+
         for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
             if (i == excludeSlot) {
                 continue;
@@ -342,17 +364,54 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
             if (existing.isEmpty()) {
                 continue;
             }
-            if (existing.getItem() == item) {
+            Item other = existing.getItem();
+            if (other == item) {
                 return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.duplicate"));
             }
-            if (item == deep && existing.getItem() == networking) {
+            if (item == deep && other == networking) {
                 return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.deep_vs_network"));
             }
-            if (item == networking && existing.getItem() == deep) {
+            if (item == networking && other == deep) {
                 return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.network_vs_deep"));
+            }
+            if (item == fluid && other == energy) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.fluid_vs_energy"));
+            }
+            if (item == energy && other == fluid) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.energy_vs_fluid"));
+            }
+            // Deep storage counts stacks and leave-last protects the final item; neither means
+            // anything to a tank or an FE buffer, so they are refused rather than silently ignored.
+            if (switchesResource && other == deep) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.resource_vs_deep"));
+            }
+            if (switchesResource && other == leaveLast) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.resource_vs_leave_last"));
+            }
+            if (item == deep && (other == fluid || other == energy)) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.deep_vs_resource"));
+            }
+            if (item == leaveLast && (other == fluid || other == energy)) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.leave_last_vs_resource"));
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Whether the storage grid holds anything.
+     *
+     * <p>Reads the menu's own container so it works on the client, where the deny tooltip is drawn,
+     * as well as on the server. Transfer slots in a fluid or energy menu are not storage, and those
+     * menus report empty here so the card can always be pulled back out.
+     */
+    protected boolean hasStoredItems() {
+        for (int i = 0; i < this.chestSlotCount; i++) {
+            if (!this.container.getItem(i).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public final boolean canInstallUpgradeCard(ItemStack stack, int excludeSlot) {
@@ -558,6 +617,48 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
             }
         }
         return false;
+    }
+
+    /**
+     * The resource mode this menu is built for. Item menus show a slot grid; the fluid and energy
+     * menus override this and show a gauge instead.
+     */
+    public ChestResourceMode expectedResourceMode() {
+        return ChestResourceMode.ITEM;
+    }
+
+    /**
+     * Ticks the menu, and swaps it out when an upgrade card has changed what this chest stores.
+     *
+     * <p>{@code broadcastChanges} runs once per tick for the viewing player, which makes it the
+     * natural place for this: outside any click being processed, and somewhere the cursor can be
+     * checked. Both matter — see
+     * {@link AbstractTieredChestBlockEntity#swapMenuForResourceMode(ServerPlayer)}.
+     */
+    @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+        this.swapMenuIfResourceModeChanged();
+    }
+
+    private void swapMenuIfResourceModeChanged() {
+        if (this.level == null || this.level.isClientSide()) {
+            return;
+        }
+        // Never mid-drag: whatever is on the cursor would belong to a menu that is about to stop
+        // existing.
+        if (!this.getCarried().isEmpty()) {
+            return;
+        }
+        if (!(this.level.getBlockEntity(this.chestPos) instanceof AbstractTieredChestBlockEntity chest)) {
+            return;
+        }
+        if (chest.getResourceMode() == this.expectedResourceMode() || chest.isSwappingMenu()) {
+            return;
+        }
+        if (this.viewingPlayer instanceof ServerPlayer serverPlayer && serverPlayer.containerMenu == this) {
+            chest.swapMenuForResourceMode(serverPlayer);
+        }
     }
 
     @Override

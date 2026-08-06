@@ -12,9 +12,5 @@ public final class DiamondChestBlockEntity extends AbstractTieredChestBlockEntit
         super(ModBlockEntities.DIAMOND_CHEST.get(), worldPosition, blockState, ChestTier.DIAMOND);
     }
 
-    @Override
-    public int getSlotCount() {
-        return 9 * 12; // 108
-    }
 }
 

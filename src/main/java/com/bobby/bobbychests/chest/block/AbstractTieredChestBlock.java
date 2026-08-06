@@ -1,8 +1,13 @@
 package com.bobby.bobbychests.chest.block;
 
+import com.bobby.bobbychests.chest.menu.resource.ResourceChestMenuProvider;
+import com.bobby.bobbychests.chest.storage.ChestResourceMode;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import com.bobby.bobbychests.chest.storage.ChestResourceTransfer;
 import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
+import com.bobby.bobbychests.chest.storage.RoutedChestContainer;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -26,6 +31,7 @@ import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -57,6 +63,28 @@ public abstract class AbstractTieredChestBlock extends ChestBlock {
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         super.createBlockStateDefinition(builder);
         builder.add(OBSERVER_OPEN);
+    }
+
+    /**
+     * Adds a server ticker on top of vanilla's client-only lid ticker.
+     *
+     * <p>{@link ChestBlock#getTicker} returns null on the server, which is right for a plain chest
+     * but leaves a tank with nothing to drive its level updates: rate-limited broadcasts need
+     * something to come back and send what was held back. See
+     * {@link AbstractTieredChestBlockEntity#serverTick()}.
+     *
+     * <p>Item chests tick too, but {@code serverTick} returns immediately for them.
+     */
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        if (level.isClientSide()) {
+            return super.getTicker(level, state, type);
+        }
+        return (tickLevel, pos, tickState, blockEntity) -> {
+            if (blockEntity instanceof AbstractTieredChestBlockEntity chest) {
+                chest.serverTick();
+            }
+        };
     }
 
     protected abstract String titleKey();
@@ -122,11 +150,24 @@ public abstract class AbstractTieredChestBlock extends ChestBlock {
         BlockEntity blockEntity = level.getBlockEntity(pos);
         if (!(blockEntity instanceof AbstractTieredChestBlockEntity chest)) return null;
 
-        Component title = Component.translatable(titleKey());
-
         if (!(level instanceof ServerLevel serverLevel)) {
             return null;
         }
+
+        // Fluid and energy chests share one screen across every tier, so they short-circuit the
+        // per-tier provider rather than each tier having to know about them.
+        ChestResourceMode resourceMode = chest.getResourceMode();
+        if (resourceMode != ChestResourceMode.ITEM) {
+            // "Wooden Fluid Chest" rather than a generic "Tank": the tier still matters to the
+            // player, since it sets the capacity and the channel range.
+            Component resourceTitle = Component.translatable(
+                    "container.bobbychests." + resourceMode.id() + "_chest",
+                    Component.translatable("tier.bobbychests." + chest.getTier().id()));
+            return new ResourceChestMenuProvider(
+                    resourceTitle, new RoutedChestContainer(chest), pos, chest, resourceMode);
+        }
+
+        Component title = Component.translatable(titleKey());
         return createMenuProvider(serverLevel, pos, chest, title);
     }
 

@@ -42,6 +42,14 @@ public class ModItems {
     public static final DeferredItem<ChestUpgradeCardItem> DEEP_STORAGE_UPGRADE_CARD =
             ITEMS.registerItem("deep_storage_upgrade_card", ChestUpgradeCardItem::new);
 
+    /** Switches the chest into a tank. Mutually exclusive with {@link #ENERGY_UPGRADE_CARD}. */
+    public static final DeferredItem<ChestUpgradeCardItem> FLUID_UPGRADE_CARD =
+            ITEMS.registerItem("fluid_upgrade_card", ChestUpgradeCardItem::new);
+
+    /** Switches the chest into an FE buffer. Mutually exclusive with {@link #FLUID_UPGRADE_CARD}. */
+    public static final DeferredItem<ChestUpgradeCardItem> ENERGY_UPGRADE_CARD =
+            ITEMS.registerItem("energy_upgrade_card", ChestUpgradeCardItem::new);
+
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

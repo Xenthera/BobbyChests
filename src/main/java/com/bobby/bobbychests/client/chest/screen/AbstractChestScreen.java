@@ -25,6 +25,7 @@ import com.bobby.bobbycore.client.gui.theme.UiTheme;
 import com.bobby.bobbycore.client.gui.widget.UiButton;
 import com.bobby.bobbycore.client.gui.widget.UiCheckbox;
 import com.bobby.bobbycore.client.gui.widget.UiTextBox;
+import net.minecraft.core.BlockPos;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
@@ -127,6 +128,48 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends T
         this.initLockToggle();
         this.ensureTabStrip();
         this.syncFeatureTabs();
+        this.restoreOpenTab();
+    }
+
+    /**
+     * Which tab was open last time a screen for this chest was on screen.
+     *
+     * <p>Static because the screen itself does not survive what this exists for: installing a fluid
+     * or energy card swaps the whole menu, so the screen is torn down and rebuilt, and without this
+     * the upgrades tab the player was working in snaps shut under their cursor. Keyed by position so
+     * one chest's tab is not restored onto another's.
+     */
+    private static BlockPos rememberedTabChestPos;
+    private static Class<?> rememberedTabType;
+
+    private void rememberOpenTab() {
+        if (this.tabStrip == null) {
+            return;
+        }
+        var open = this.tabStrip.getOpenTab();
+        rememberedTabChestPos = this.menu.getChestPos();
+        rememberedTabType = open == null ? null : open.getClass();
+    }
+
+    private void restoreOpenTab() {
+        if (this.tabStrip == null || rememberedTabType == null) {
+            return;
+        }
+        if (!this.menu.getChestPos().equals(rememberedTabChestPos)) {
+            return;
+        }
+        for (var tab : this.tabStrip.getTabs()) {
+            if (tab.getClass() == rememberedTabType) {
+                this.tabStrip.requestOpen(tab);
+                return;
+            }
+        }
+    }
+
+    @Override
+    public void removed() {
+        this.rememberOpenTab();
+        super.removed();
     }
 
     private void ensureTabStrip() {
