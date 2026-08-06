@@ -359,6 +359,35 @@ public class GlobalTieredChestData extends SavedData {
         }
     }
 
+    /**
+     * Tells every chest sharing {@code key} that the pooled level moved.
+     *
+     * <p>Each one re-checks against its own last-sent state and sends if it differs, so there is no
+     * double send and each keeps its own rate limit.
+     *
+     * <p>This has to be pushed rather than left for each chest to notice on its own tick. The chest
+     * that was actually interacted with learns about the change directly, but the others have no
+     * event to hang it on — their contents changed without anything happening to them.
+     */
+    public void notifyPooledLevelChanged(ServerLevel anyLevel, StorageKey key) {
+        this.notifyPooledLevelChanged(anyLevel, key, false);
+    }
+
+    /**
+     * @param force when true, bypass each chest's level-broadcast rate limit (hand transfers).
+     */
+    public void notifyPooledLevelChanged(ServerLevel anyLevel, StorageKey key, boolean force) {
+        forEachAttached(anyLevel, key, (targetLevel, pos) -> {
+            if (targetLevel.getBlockEntity(pos) instanceof AbstractTieredChestBlockEntity chest) {
+                if (force) {
+                    chest.maybeBroadcastResourceLevelFromPool(true);
+                } else {
+                    chest.sendResourceLevelIfChanged();
+                }
+            }
+        });
+    }
+
     public void notifyStorageChanged(ServerLevel level, StorageKey key) {
         forEachAttached(level, key, (targetLevel, pos) -> {
             Block block = targetLevel.getBlockState(pos).getBlock();

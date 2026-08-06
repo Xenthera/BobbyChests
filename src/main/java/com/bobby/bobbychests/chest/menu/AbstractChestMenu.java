@@ -4,6 +4,9 @@ import com.bobby.bobbychests.chest.ChestTier;
 import net.minecraft.server.level.ServerPlayer;
 import com.bobby.bobbychests.chest.storage.ChestResourceMode;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
+import com.bobby.bobbychests.chest.storage.ChestModeContainer;
+import com.bobby.bobbychests.chest.upgrade.ChestModeCards;
+import com.bobby.bobbychests.chest.upgrade.ChestUpgradeContainer;
 import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.chest.storage.DeepStorageStacks;
 import com.bobby.bobbychests.registry.ModItems;
@@ -49,9 +52,39 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     /** Keep in sync with {@link com.bobby.bobbychests.client.chest.screen.tab.UpgradeSlotsTab}. */
     public static final int UPGRADE_TAB_PAD = 4;
     public static final int UPGRADE_TAB_CONTENT_TOP = 28;
-    /** Keep in sync with {@link GuiLayout#tabStripOriginY()} so slots track the tab panel. */
-    public static final int UPGRADE_TAB_ORIGIN_Y = GuiLayout.tabStripOriginY();
+    /** Nudges the whole tab stack up a little; the strip sat lower than it needed to. */
+    public static final int TAB_STRIP_Y_OFFSET = -8;
+    /** Top of the tab strip. The screen reads this too, so the slots and the panels cannot drift. */
+    public static final int UPGRADE_TAB_ORIGIN_Y = GuiLayout.tabStripOriginY() + TAB_STRIP_Y_OFFSET;
     public static final int UPGRADE_SLOT_SIZE = 18;
+
+    /**
+     * Closed tab height and the gap between tabs.
+     *
+     * <p>Duplicated from {@code ExpandableTab.DEFAULT_CLOSED_HEIGHT} and {@code TabStrip.VERTICAL_GAP}
+     * rather than referenced, because those live in BobbyCore's client package and this class also
+     * runs on a dedicated server.
+     */
+    private static final int TAB_CLOSED_HEIGHT = 24;
+    private static final int TAB_VERTICAL_GAP = 1;
+
+    /** Tab strip order. Mode sits above upgrades. */
+    private static final int MODE_TAB_INDEX = 0;
+    private static final int UPGRADES_TAB_INDEX = 1;
+
+    /**
+     * Panel-relative Y of the content area of the tab at {@code tabIndex}.
+     *
+     * <p>Slot positions are fixed at construction — {@link Slot#x} and {@link Slot#y} are final — so
+     * they cannot follow a tab that moves. They do not need to: the strip only ever has one tab
+     * open, so every tab above the open one is at its closed height and each tab's open position is
+     * known in advance. Change the tab order and these indices have to change with it.
+     */
+    private static int tabContentTop(int tabIndex) {
+        return UPGRADE_TAB_ORIGIN_Y
+                + tabIndex * (TAB_CLOSED_HEIGHT + TAB_VERTICAL_GAP)
+                + UPGRADE_TAB_CONTENT_TOP;
+    }
 
     private static final int CHEST_SLOT_ORIGIN_X = GuiLayout.contentSlotOriginX();
     private static final int CHEST_SLOT_ORIGIN_Y = GuiLayout.slottedContentTop();
@@ -160,6 +193,8 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
 
     protected final Container container;
     protected final Container upgradeContainer;
+    /** Single mode-card slot backing; see {@link ChestModeContainer}. */
+    private final Container modeContainer;
     protected final Level level;
     /** The player this menu was opened for; needed to swap it when an upgrade changes the mode. */
     private final Player viewingPlayer;
@@ -193,6 +228,12 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
         super(type, syncID);
         this.container = Objects.requireNonNull(container);
         this.upgradeContainer = Objects.requireNonNull(upgradeContainer);
+        // Derived from the upgrade container rather than passed in, so no tier menu needs a new
+        // constructor argument. Server-side that container knows its block entity; client-side the
+        // menu works off a mirror, exactly as the upgrade slots do.
+        this.modeContainer = upgradeContainer instanceof ChestUpgradeContainer serverUpgrades
+                ? new ChestModeContainer(serverUpgrades.getManager().getChest())
+                : new SimpleContainer(ChestModeContainer.SIZE);
         this.level = playerInventory.player.level();
         this.viewingPlayer = playerInventory.player;
         this.chestPos = chestPos;
@@ -216,6 +257,10 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
 
     public final Container getContainer() {
         return this.container;
+    }
+
+    public final Container getModeContainer() {
+        return this.modeContainer;
     }
 
     public final Container getUpgradeContainer() {
@@ -278,7 +323,7 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     }
 
     public final int getFirstPlayerSlotIndex() {
-        return this.chestSlotCount + this.getUpgradeSlotCount();
+        return this.chestSlotCount + this.getUpgradeSlotCount() + ChestModeContainer.SIZE;
     }
 
     /** Upgrade slot X relative to the GUI left (panel width + tab attachment + tab padding). */
@@ -295,7 +340,7 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
     }
 
     public final int getUpgradeSlotY(int index) {
-        return UPGRADE_TAB_ORIGIN_Y + UPGRADE_TAB_CONTENT_TOP + index * UPGRADE_SLOT_SIZE;
+        return tabContentTop(UPGRADES_TAB_INDEX) + index * UPGRADE_SLOT_SIZE;
     }
 
     public final Slot getUpgradeSlot(int index) {
@@ -337,6 +382,11 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
             return Optional.empty();
         }
 
+        // Mode cards belong in the mode tab. Say so rather than silently refusing.
+        if (ChestModeCards.isModeCard(stack)) {
+            return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.mode_not_upgrade"));
+        }
+
         Item item = stack.getItem();
         if (item == ModItems.DEEP_STORAGE_UPGRADE_CARD.get() && !this.allowDeepStorageUpgradeCard()) {
             return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.deep_tier_not_allowed"));
@@ -344,17 +394,6 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
 
         Item deep = ModItems.DEEP_STORAGE_UPGRADE_CARD.get();
         Item networking = ModItems.NETWORKING_UPGRADE_CARD.get();
-        Item leaveLast = ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get();
-        Item fluid = ModItems.FLUID_UPGRADE_CARD.get();
-        Item energy = ModItems.ENERGY_UPGRADE_CARD.get();
-        boolean switchesResource = item == fluid || item == energy;
-
-        // Switching a chest away from items would have to do something with the items already in it.
-        // Rather than dropping them or hiding them, refuse while it is non-empty and let the player
-        // clear it out deliberately.
-        if (switchesResource && this.hasStoredItems()) {
-            return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.not_empty"));
-        }
 
         for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
             if (i == excludeSlot) {
@@ -374,28 +413,22 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
             if (item == networking && other == deep) {
                 return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.network_vs_deep"));
             }
-            if (item == fluid && other == energy) {
-                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.fluid_vs_energy"));
-            }
-            if (item == energy && other == fluid) {
-                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.energy_vs_fluid"));
-            }
-            // Deep storage counts stacks and leave-last protects the final item; neither means
-            // anything to a tank or an FE buffer, so they are refused rather than silently ignored.
-            if (switchesResource && other == deep) {
-                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.resource_vs_deep"));
-            }
-            if (switchesResource && other == leaveLast) {
-                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.resource_vs_leave_last"));
-            }
-            if (item == deep && (other == fluid || other == energy)) {
-                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.deep_vs_resource"));
-            }
-            if (item == leaveLast && (other == fluid || other == energy)) {
-                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.leave_last_vs_resource"));
-            }
+        }
+
+        // Deep storage counts stacks and leave-last protects the final item; neither means anything
+        // to a tank or an FE buffer, so they are refused while a mode card is in.
+        if (item == deep && this.storesNonItems()) {
+            return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.deep_vs_resource"));
+        }
+        if (item == ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get() && this.storesNonItems()) {
+            return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.leave_last_vs_resource"));
         }
         return Optional.empty();
+    }
+
+    /** True when a mode card is installed, i.e. the chest is a tank or an FE buffer. */
+    private boolean storesNonItems() {
+        return ChestModeCards.isModeCard(this.getModeContainer().getItem(0));
     }
 
     /**
@@ -421,6 +454,43 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
         return this.getUpgradeInstallDenyReason(stack, excludeSlot).isEmpty();
     }
 
+    /**
+     * @return empty if {@code stack} may go in the mode slot; otherwise a reason for the tooltip
+     */
+    public final Optional<Component> getModeInstallDenyReason(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return Optional.empty();
+        }
+        if (!ChestModeCards.isModeCard(stack)) {
+            // Covers upgrade cards and anything else that is simply not a mode card.
+            return Optional.of(Component.translatable(
+                    ChestUpgradeManager.isUpgradeCard(stack)
+                            ? "gui.bobbychests.mode.deny.upgrade_not_mode"
+                            : "gui.bobbychests.mode.deny.not_a_mode_card"));
+        }
+        // Same reasoning as before the mode slot existed: changing what a chest stores while it is
+        // holding items would have to do something with those items.
+        if (this.hasStoredItems()) {
+            return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.not_empty"));
+        }
+        // Deep storage counts stacks and leave-last protects the final item; neither means anything
+        // to a tank or a buffer, so they block the swap rather than being quietly ignored.
+        for (int i = 0; i < this.upgradeContainer.getContainerSize(); i++) {
+            Item installed = this.upgradeContainer.getItem(i).getItem();
+            if (installed == ModItems.DEEP_STORAGE_UPGRADE_CARD.get()) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.resource_vs_deep"));
+            }
+            if (installed == ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get()) {
+                return Optional.of(Component.translatable("gui.bobbychests.upgrade.deny.resource_vs_leave_last"));
+            }
+        }
+        return Optional.empty();
+    }
+
+    public final boolean canInstallModeCard(ItemStack stack) {
+        return ChestModeCards.isModeCard(stack) && this.getModeInstallDenyReason(stack).isEmpty();
+    }
+
     /** Plain grid at the standard chest-origin coordinates; sets {@link #chestSlotCount}. */
     protected final void addStandardChestGridSlots(int slotsPerRow, int rows) {
         this.setChestGridSize(slotsPerRow, rows);
@@ -435,6 +505,78 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
                                 CHEST_SLOT_ORIGIN_X + col * CHEST_SLOT_STEP,
                                 CHEST_SLOT_ORIGIN_Y + row * CHEST_SLOT_STEP));
             }
+        }
+    }
+
+    /**
+     * The single mode-card slot, added right after the upgrade slots.
+     *
+     * <p>Placed inside {@link #addUpgradeSlots()} rather than exposed separately so every tier menu
+     * picks it up without a constructor change — they all call that method at the same point, just
+     * before the player inventory, which is exactly where this slot belongs in the index order.
+     */
+    private void addModeSlot() {
+        this.addSlot(new ModeSlot(this.modeContainer, 0, this.getModeSlotX(), this.getModeSlotY()) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return AbstractChestMenu.this.canInstallModeCard(stack);
+            }
+
+            @Override
+            public int getMaxStackSize() {
+                return 1;
+            }
+
+            @Override
+            public int getMaxStackSize(ItemStack stack) {
+                return 1;
+            }
+        });
+    }
+
+    /** Mode slot X, in its own tab below the upgrades tab. */
+    public final int getModeSlotX() {
+        return this.getChestPanelWidthPx() + this.getUpgradeTabAttachmentOffset() + UPGRADE_TAB_PAD;
+    }
+
+    public final int getModeSlotY() {
+        return tabContentTop(MODE_TAB_INDEX);
+    }
+
+    /** Menu index of the mode slot. It sits immediately after the upgrade slots. */
+    public final int getModeSlotIndex() {
+        return this.getFirstUpgradeSlotIndex() + this.getUpgradeSlotCount();
+    }
+
+    public final Slot getModeSlot() {
+        return this.slots.get(this.getModeSlotIndex());
+    }
+
+    public final boolean isModeSlotActive() {
+        return this.getModeSlot() instanceof ModeSlot modeSlot && modeSlot.isActive();
+    }
+
+    public final void setModeSlotActive(boolean active) {
+        if (this.getModeSlot() instanceof ModeSlot modeSlot) {
+            modeSlot.setActive(active);
+        }
+    }
+
+    /** Mode-card slot that hides while its tab is closed, exactly as {@link UpgradeSlot} does. */
+    public static class ModeSlot extends Slot {
+        private boolean active;
+
+        public ModeSlot(Container container, int slot, int x, int y) {
+            super(container, slot, x, y);
+        }
+
+        public void setActive(boolean active) {
+            this.active = active;
+        }
+
+        @Override
+        public boolean isActive() {
+            return this.active;
         }
     }
 
@@ -462,6 +604,7 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
                 }
             });
         }
+        this.addModeSlot();
     }
 
     /**
@@ -536,9 +679,19 @@ public abstract class AbstractChestMenu extends AbstractContainerMenu {
                     return ItemStack.EMPTY;
                 }
             } else {
-                if (ChestUpgradeManager.isUpgradeCard(stack)) {
+                if (ChestModeCards.isModeCard(stack)) {
+                    // Its own branch because a mode card is deliberately not an upgrade card, so it
+                    // would otherwise fall through to the storage grid even with its tab wide open.
+                    boolean movedToMode = this.isModeSlotActive()
+                            && this.moveItemStackTo(stack, this.getModeSlotIndex(), this.getModeSlotIndex() + 1, false);
+                    if (!movedToMode && !this.moveItemStackTo(stack, 0, this.chestSlotCount, false)) {
+                        return ItemStack.EMPTY;
+                    }
+                } else if (ChestUpgradeManager.isUpgradeCard(stack)) {
+                    // Stops before the mode slot: an upgrade card has no business there, and relying
+                    // on that slot's mayPlace to say so leaves the intent implicit.
                     boolean movedToUpgrade = this.areUpgradeSlotsActive()
-                            && this.moveItemStackTo(stack, this.getFirstUpgradeSlotIndex(), this.getFirstPlayerSlotIndex(), false);
+                            && this.moveItemStackTo(stack, this.getFirstUpgradeSlotIndex(), this.getModeSlotIndex(), false);
                     if (!movedToUpgrade && !this.moveItemStackTo(stack, 0, this.chestSlotCount, false)) {
                         return ItemStack.EMPTY;
                     }

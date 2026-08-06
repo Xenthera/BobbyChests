@@ -5,6 +5,7 @@ import com.bobby.bobbychests.chest.menu.AbstractChestMenu;
 import com.bobby.bobbychests.chest.menu.AbstractScrollableChestMenu;
 import com.bobby.bobbychests.chest.storage.ChestStorageMode;
 import com.bobby.bobbychests.client.chest.screen.tab.LockFeatureTab;
+import com.bobby.bobbychests.client.chest.screen.tab.ModeCardTab;
 import com.bobby.bobbychests.client.chest.screen.tab.NetworkFeatureTab;
 import com.bobby.bobbychests.client.chest.screen.tab.UpgradeSlotsTab;
 import com.bobby.bobbychests.network.SortChestPayload;
@@ -66,6 +67,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends T
     private LockFeatureTab lockTab;
     private NetworkFeatureTab networkTab;
     private UpgradeSlotsTab upgradesTab;
+    private ModeCardTab modeTab;
     private static final long CLAMP_POPUP_MS = 1200L;
     private static final int GUI_MARGIN_PX = 6;
     private static final int ID_BOX_H = 12;
@@ -182,7 +184,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends T
 
     /** Screen Y for the first tab: 1px below the panel header bottom. */
     private int tabStripOriginY() {
-        return this.topPos + GuiLayout.tabStripOriginY();
+        return this.topPos + AbstractChestMenu.UPGRADE_TAB_ORIGIN_Y;
     }
 
     /**
@@ -196,15 +198,21 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends T
         boolean wantNetwork = this.menu.hasNetworkingUpgradeInstalled();
         boolean wantUpgrades = this.menu.getUpgradeSlotCount() > 0;
 
+        // Order matters and is mirrored by AbstractChestMenu's tab indices, which is how the slots
+        // know where their tab will be. Mode first, then upgrades, then the feature tabs.
+        if (this.modeTab == null) {
+            this.modeTab = this.tabStrip.addTab(0, new ModeCardTab(this.menu));
+        }
+
         if (wantUpgrades && this.upgradesTab == null) {
-            this.upgradesTab = this.tabStrip.addTab(0, new UpgradeSlotsTab(this.menu));
+            this.upgradesTab = this.tabStrip.addTab(1, new UpgradeSlotsTab(this.menu));
         } else if (!wantUpgrades && this.upgradesTab != null) {
             this.tabStrip.removeTab(this.upgradesTab);
             this.upgradesTab = null;
         }
 
         if (wantLock && this.lockTab == null) {
-            int index = this.upgradesTab != null ? 1 : 0;
+            int index = 1 + (this.upgradesTab != null ? 1 : 0);
             this.lockTab = this.tabStrip.addTab(index, new LockFeatureTab());
         } else if (!wantLock && this.lockTab != null) {
             this.tabStrip.removeTab(this.lockTab);
@@ -212,13 +220,7 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends T
         }
 
         if (wantNetwork && this.networkTab == null) {
-            int index = 0;
-            if (this.upgradesTab != null) {
-                index++;
-            }
-            if (this.lockTab != null) {
-                index++;
-            }
+            int index = 1 + (this.upgradesTab != null ? 1 : 0) + (this.lockTab != null ? 1 : 0);
             this.networkTab = this.tabStrip.addTab(index, new NetworkFeatureTab(ID_BOX_W, ID_BOX_H));
         } else if (!wantNetwork && this.networkTab != null) {
             this.tabStrip.removeTab(this.networkTab);
@@ -621,6 +623,17 @@ public abstract class AbstractChestScreen<M extends AbstractChestMenu> extends T
             Optional<Component> deny = this.menu.getUpgradeInstallDenyReason(
                     this.menu.getCarried(),
                     this.hoveredSlot.getContainerSlot());
+            if (deny.isPresent()) {
+                graphics.setTooltipForNextFrame(this.font, List.of(deny.get()), Optional.empty(), mouseX, mouseY);
+                return;
+            }
+        }
+        // Same courtesy for the mode slot: say why the card will not go in, rather than just
+        // refusing it silently.
+        if (this.hoveredSlot instanceof AbstractChestMenu.ModeSlot modeSlot
+                && modeSlot.isActive()
+                && !this.menu.getCarried().isEmpty()) {
+            Optional<Component> deny = this.menu.getModeInstallDenyReason(this.menu.getCarried());
             if (deny.isPresent()) {
                 graphics.setTooltipForNextFrame(this.font, List.of(deny.get()), Optional.empty(), mouseX, mouseY);
                 return;

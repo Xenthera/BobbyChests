@@ -52,8 +52,9 @@ public final class ChestUpgradeManager {
         this.onContentsChanged();
     }
 
+    /** Mode cards are excluded: they are a different kind of card with their own slot. */
     public static boolean isUpgradeCard(ItemStack stack) {
-        if (stack.isEmpty()) {
+        if (stack.isEmpty() || ChestModeCards.isModeCard(stack)) {
             return false;
         }
         return stack.getItem() instanceof ChestUpgradeCardItem || stack.is(BobbyChestTags.UPGRADE_CARDS);
@@ -69,8 +70,14 @@ public final class ChestUpgradeManager {
         return false;
     }
 
-    /** Current capabilities from whichever upgrade slots hold matching cards (any slot). */
+    /**
+     * Current capabilities from whichever upgrade slots hold matching cards (any slot).
+     *
+     * <p>The two mode flags come from the chest's dedicated mode slot instead, not from the upgrade
+     * slots — a mode card is not an upgrade and does not compete for the same space.
+     */
     public ChestUpgradeCapabilities capabilities() {
+        ItemStack modeCard = this.chest.getModeCard();
         return new ChestUpgradeCapabilities(
                 this.has(ModItems.NETWORKING_UPGRADE_CARD.get()),
                 this.has(ModItems.INFINITE_UPGRADE_CARD.get()),
@@ -79,8 +86,8 @@ public final class ChestUpgradeManager {
                 this.has(ModItems.RETAIN_ITEMS_UPGRADE_CARD.get()),
                 this.has(ModItems.LOCK_UPGRADE_CARD.get()),
                 this.has(ModItems.DEEP_STORAGE_UPGRADE_CARD.get()),
-                this.has(ModItems.FLUID_UPGRADE_CARD.get()),
-                this.has(ModItems.ENERGY_UPGRADE_CARD.get()));
+                modeCard.is(ModItems.FLUID_UPGRADE_CARD.get()),
+                modeCard.is(ModItems.ENERGY_UPGRADE_CARD.get()));
     }
 
     public void onContentsChanged() {

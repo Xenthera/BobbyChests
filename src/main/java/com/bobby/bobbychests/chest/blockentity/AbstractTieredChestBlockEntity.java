@@ -6,6 +6,7 @@ import com.bobby.bobbychests.chest.storage.ChestResourceContents;
 import com.bobby.bobbychests.chest.storage.ChestResourceMode;
 import com.bobby.bobbychests.chest.storage.ChestResourceTransfer;
 import com.bobby.bobbychests.chest.storage.ChestStorageMode;
+import com.bobby.bobbychests.chest.storage.ChestModeContainer;
 import com.bobby.bobbychests.chest.storage.ChestTransferContainer;
 import com.bobby.bobbychests.chest.storage.DeepStorageStacks;
 import com.bobby.bobbychests.chest.storage.GlobalTieredChestData;
@@ -21,7 +22,9 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.ContainerHelper;
@@ -63,6 +66,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     /** Level shown to clients; in global mode this is a copy of the pool, not this block's own state. */
     private static final String TAG_DISPLAY_RESOURCES = "bobbychests:display_resources";
     private static final String TAG_TRANSFER_ITEMS = "bobbychests:transfer_items";
+    private static final String TAG_MODE_CARD = "bobbychests:mode_card";
 
     /**
      * Minimum ticks between level broadcasts.
@@ -75,6 +79,16 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
      * guarantees anything held back still lands.
      */
     private static final int LEVEL_BROADCAST_MIN_TICKS = 2;
+
+    /**
+     * {@link #lastLevelBroadcastTick} before anything has been sent, and after a change that must go
+     * out on the next opportunity regardless of the rate limit.
+     *
+     * <p>Checked by identity rather than subtracted from. {@code gameTime - Long.MIN_VALUE} overflows
+     * to a large negative number, so an elapsed-time test against it reads as "no time has passed"
+     * for every game time there is — which is what silently switched the whole broadcast off.
+     */
+    private static final long NEVER_BROADCAST = Long.MIN_VALUE;
 
     private record StoredSlot(int slot, ItemStack stack) {
         private static final Codec<StoredSlot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -102,11 +116,13 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     private final ChestResourceContents displayResources = new ChestResourceContents();
     /** Bucket/battery in and out slots for a fluid or energy chest. Not storage; see ChestTransferContainer. */
     private final NonNullList<ItemStack> transferItems = NonNullList.withSize(ChestTransferContainer.SIZE, ItemStack.EMPTY);
+    /** The one mode card, held apart from the upgrade slots so it costs none of them. */
+    private final NonNullList<ItemStack> modeItems = NonNullList.withSize(ChestModeContainer.SIZE, ItemStack.EMPTY);
     /** Guards the transfer-on-change / change-on-transfer cycle from recursing. */
     private boolean runningTransfer;
     /** Non-zero while {@link #swapMenu} is exchanging menus; see {@link #isSwappingMenu()}. */
     private int menuSwapDepth;
-    private long lastLevelBroadcastTick = Long.MIN_VALUE;
+    private long lastLevelBroadcastTick = NEVER_BROADCAST;
     private int lastBroadcastFluidAmount = -1;
     private int lastBroadcastEnergy = -1;
     private FluidResource lastBroadcastFluid = FluidResource.EMPTY;
@@ -186,12 +202,64 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     public void onResourcesChanged() {
         this.setChanged();
         this.maybeBroadcastResourceLevel(false);
+        // In a shared pool the other chests on this channel just changed too, without anything
+        // happening to them that they could notice. They have to be told.
+        if (this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel serverLevel) {
+            GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
+            data.notifyPooledLevelChanged(serverLevel, data.keyForChest(this));
+        }
         // A tank that just gained fluid may now be able to fill a bucket waiting in the input slot.
         this.runTransferSlots();
     }
 
+    /** Sends this chest's level to clients if it differs from what they were last told. */
+    public void sendResourceLevelIfChanged() {
+        this.maybeBroadcastResourceLevel(false);
+    }
+
+    /**
+     * Same as {@link #sendResourceLevelIfChanged()} but may bypass the rate limit.
+     *
+     * <p>Used by {@link GlobalTieredChestData#notifyPooledLevelChanged} so a forced pool notify does
+     * not recurse back into another pool fan-out.
+     */
+    public void maybeBroadcastResourceLevelFromPool(boolean force) {
+        this.maybeBroadcastResourceLevel(force);
+    }
+
+    /**
+     * Pushes the current level to tracking clients immediately, ignoring the rate limit.
+     *
+     * <p>For discrete player actions (sneak-bucket, sneak-battery) where waiting a tick or two for
+     * {@link #serverTick()} would leave the block looking empty after the item already changed.
+     */
+    public void forceBroadcastResourceLevel() {
+        this.maybeBroadcastResourceLevel(true);
+        if (this.getStorageMode() == ChestStorageMode.GLOBAL && this.getLevel() instanceof ServerLevel serverLevel) {
+            GlobalTieredChestData data = GlobalTieredChestData.get(serverLevel);
+            data.notifyPooledLevelChanged(serverLevel, data.keyForChest(this), true);
+        }
+    }
+
     public NonNullList<ItemStack> getTransferItems() {
         return this.transferItems;
+    }
+
+    public NonNullList<ItemStack> getModeItems() {
+        return this.modeItems;
+    }
+
+    /** The installed mode card, or empty. Drives {@link #getResourceMode()}. */
+    public ItemStack getModeCard() {
+        return this.modeItems.get(0);
+    }
+
+    /** Called by {@link ChestModeContainer} when the card is put in or taken out. */
+    public void onModeCardChanged() {
+        this.setChanged();
+        if (this.level != null && !this.level.isClientSide()) {
+            this.reconcileResourceModeWithUpgrades();
+        }
     }
 
     /** Called by {@link ChestTransferContainer} whenever a player moves something in or out. */
@@ -221,6 +289,15 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         }
     }
 
+    private void dropModeCard(Level level, BlockPos pos) {
+        ItemStack card = this.modeItems.get(0);
+        if (card.isEmpty()) {
+            return;
+        }
+        Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), card.copy());
+        this.modeItems.set(0, ItemStack.EMPTY);
+    }
+
     private void dropTransferItems(Level level, BlockPos pos) {
         for (int slot = 0; slot < this.transferItems.size(); slot++) {
             ItemStack stack = this.transferItems.get(slot);
@@ -233,8 +310,8 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
     }
 
     /**
-     * Pushes the current level to clients, subject to {@link #LEVEL_BROADCAST_MIN_TICKS} and
-     * {@link #LEVEL_BROADCAST_MIN_FRACTION} unless {@code force} is set.
+     * Pushes the current level to clients, subject to {@link #LEVEL_BROADCAST_MIN_TICKS} unless
+     * {@code force} is set.
      */
     private void maybeBroadcastResourceLevel(boolean force) {
         if (!(this.getLevel() instanceof ServerLevel serverLevel)) {
@@ -262,7 +339,11 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         // so much as twitch, and — worse — the final insert before a pipe went idle was usually
         // under the threshold, so it was discarded and the client stayed stale until the chunk
         // reloaded. That is the "never updates until I reopen the world" bug.
-        if (!force && serverLevel.getGameTime() - this.lastLevelBroadcastTick < LEVEL_BROADCAST_MIN_TICKS) {
+        //
+        // NEVER_BROADCAST is compared, not subtracted: see the constant.
+        if (!force
+                && this.lastLevelBroadcastTick != NEVER_BROADCAST
+                && serverLevel.getGameTime() - this.lastLevelBroadcastTick < LEVEL_BROADCAST_MIN_TICKS) {
             return;
         }
 
@@ -270,7 +351,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         this.lastBroadcastFluid = active.fluid();
         this.lastBroadcastFluidAmount = active.fluidAmount();
         this.lastBroadcastEnergy = active.energy();
-        this.requestClientUpdate();
+        this.sendResourceLevelToTrackers();
     }
 
     /**
@@ -325,7 +406,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         }
         this.setChanged();
         // A mode change repaints both the GUI and the block, so it always goes out immediately.
-        this.lastLevelBroadcastTick = Long.MIN_VALUE;
+        this.lastLevelBroadcastTick = NEVER_BROADCAST;
         this.requestClientUpdate();
         this.invalidateCapabilitiesForModeChange();
         // Open menus are not swapped here. See AbstractChestMenu#broadcastChanges: doing it from
@@ -488,6 +569,65 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         }
         BlockState state = this.getBlockState();
         level.sendBlockUpdated(this.getBlockPos(), state, state, 3);
+        // Belt and braces: sendBlockUpdated is about a block whose state has not changed, and does
+        // not reliably carry the block entity with it. Mode and channel changes repaint the block,
+        // so they cannot afford to be dropped either.
+        this.sendResourceLevelToTrackers();
+    }
+
+    /**
+     * Pushes this block entity's data to every player tracking its chunk, directly.
+     *
+     * <p>{@link #requestClientUpdate()} asks the chunk system to notice a block change and resend
+     * the block entity along with it, which is the usual route but is bookkeeping about a block
+     * whose state has not actually changed — the level moving is invisible to it. In practice a
+     * tank's level would sit stale on the client until something forced a genuine block update, and
+     * for a networked chest the only thing that did was opening it, which toggles the hidden
+     * observer state. Hence sending the packet ourselves: there is nothing to infer.
+     */
+    private void sendResourceLevelToTrackers() {
+        if (!(this.getLevel() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        Packet<ClientGamePacketListener> packet = this.getUpdatePacket();
+        if (packet == null) {
+            return;
+        }
+        ChunkPos chunkPos = ChunkPos.containing(this.getBlockPos());
+        for (ServerPlayer player : serverLevel.getChunkSource().chunkMap.getPlayers(chunkPos, false)) {
+            player.connection.send(packet);
+        }
+    }
+
+    /**
+     * Applies only the fields {@link #getUpdateTag} actually sends.
+     *
+     * <p>The default NeoForge path runs the full {@link #loadAdditional} against that partial tag,
+     * which clears mode cards, upgrades, and transfer slots on the client every time the tank level
+     * moves. Those belong on disk and in the open menu, not in the level broadcast.
+     */
+    private void applyClientUpdateTag(ValueInput input) {
+        this.globalStorageId = input.getIntOr(TAG_GLOBAL_STORAGE_ID, this.globalStorageId);
+        this.storageMode = input.getBooleanOr(TAG_STORAGE_MODE, this.storageMode == ChestStorageMode.GLOBAL)
+                ? ChestStorageMode.GLOBAL
+                : ChestStorageMode.LOCAL;
+        this.locked = input.getBooleanOr(TAG_LOCKED, this.locked);
+        String uuidStr = input.getStringOr(TAG_OWNER_UUID, this.ownerUuid == null ? "" : this.ownerUuid.toString());
+        this.ownerUuid = uuidStr.isEmpty() ? null : UUID.fromString(uuidStr);
+        this.resourceMode = ChestResourceMode.fromIdOrDefault(
+                input.getStringOr(TAG_RESOURCE_MODE, this.resourceMode.id()), this.resourceMode);
+        input.read(TAG_DISPLAY_RESOURCES, ChestResourceContents.CODEC)
+                .ifPresent(this.displayResources::copyFrom);
+    }
+
+    @Override
+    public void onDataPacket(Connection net, ValueInput valueInput) {
+        this.applyClientUpdateTag(valueInput);
+    }
+
+    @Override
+    public void handleUpdateTag(ValueInput input) {
+        this.applyClientUpdateTag(input);
     }
 
     void signalOpenCountFromCounter(Level level, BlockPos pos, BlockState state, int oldCount, int newCount) {
@@ -757,6 +897,8 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
             this.transferItems.set(i, ItemStack.EMPTY);
         }
         ContainerHelper.loadAllItems(input.childOrEmpty(TAG_TRANSFER_ITEMS), this.transferItems);
+        this.modeItems.set(0, ItemStack.EMPTY);
+        ContainerHelper.loadAllItems(input.childOrEmpty(TAG_MODE_CARD), this.modeItems);
         input.read(TAG_LOCAL_RESOURCES, ChestResourceContents.CODEC)
                 .ifPresentOrElse(this.localResources::copyFrom, this.localResources::clear);
         // Only present on client update packets; harmless to read on the server, where it is unused.
@@ -780,6 +922,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
         output.putString(TAG_OWNER_UUID, this.ownerUuid == null ? "" : this.ownerUuid.toString());
         output.putString(TAG_RESOURCE_MODE, this.resourceMode.id());
         ContainerHelper.saveAllItems(output.child(TAG_TRANSFER_ITEMS), this.transferItems);
+        ContainerHelper.saveAllItems(output.child(TAG_MODE_CARD), this.modeItems);
         // Only this block's own tank, never the shared pool: that belongs to GlobalTieredChestData.
         output.store(TAG_LOCAL_RESOURCES, ChestResourceContents.CODEC, this.localResources);
         this.saveLocalItems(output);
@@ -925,6 +1068,7 @@ public abstract class AbstractTieredChestBlockEntity extends ChestBlockEntity im
             // Only reached without a retain card; with one, the early return above leaves these to
             // travel on the dropped chest item alongside everything else it saved.
             this.dropTransferItems(level, pos);
+            this.dropModeCard(level, pos);
         }
         // Fluid and FE cannot be spilled as entities, so without a retain card they are simply gone.
         // The retain path above returns before this, having copied them onto the dropped chest item.

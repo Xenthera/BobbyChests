@@ -1,7 +1,5 @@
 package com.bobby.bobbychests.chest;
 
-import com.bobby.bobbychests.BobbyChests;
-import com.bobby.bobbychests.chest.storage.ChestResourceContents;
 import com.bobby.bobbychests.chest.blockentity.AbstractTieredChestBlockEntity;
 import com.bobby.bobbychests.chest.storage.ChestResourceMode;
 import com.bobby.bobbychests.chest.storage.ChestResourceTransfer;
@@ -57,24 +55,10 @@ public final class ChestHandTransferHandler {
         }
 
         if (!event.getLevel().isClientSide()) {
-            // TEMPORARY DIAGNOSTIC — remove once the networked shift-click bug is pinned down.
-            ChestResourceContents before = chest.getActiveResources().copy();
-            boolean moved;
-            try {
-                moved = ChestResourceTransfer.runAgainst(chest, access);
-            } catch (RuntimeException e) {
-                BobbyChests.LOGGER.error("[handtransfer] threw for {} chest at {}",
-                        chest.getStorageMode(), event.getPos(), e);
-                throw e;
+            if (ChestResourceTransfer.runAgainst(chest, access)) {
+                // Discrete click: do not wait on the pipe rate-limit / serverTick flush.
+                chest.forceBroadcastResourceLevel();
             }
-            ChestResourceContents after = chest.getActiveResources();
-            BobbyChests.LOGGER.info(
-                    "[handtransfer] mode={} storage={} channel={} locked={} held={} moved={}"
-                            + " fluid {}x{} -> {}x{} | energy {} -> {}",
-                    mode, chest.getStorageMode(), chest.getGlobalStorageId(), chest.isLocked(),
-                    event.getItemStack().getItem(), moved,
-                    before.fluid(), before.fluidAmount(), after.fluid(), after.fluidAmount(),
-                    before.energy(), after.energy());
         }
 
         // Cancelled on both sides, and regardless of whether anything actually moved: a full tank

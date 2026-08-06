@@ -1,6 +1,7 @@
 package com.bobby.bobbychests.registry;
 
 import com.bobby.bobbychests.BobbyChests;
+import com.bobby.bobbychests.item.ChestModeCardItem;
 import com.bobby.bobbychests.item.ChestUpgradeCardItem;
 import com.bobby.bobbychests.item.CreativeInfiniteUpgradeCardItem;
 import net.minecraft.world.item.Item;
@@ -42,13 +43,13 @@ public class ModItems {
     public static final DeferredItem<ChestUpgradeCardItem> DEEP_STORAGE_UPGRADE_CARD =
             ITEMS.registerItem("deep_storage_upgrade_card", ChestUpgradeCardItem::new);
 
-    /** Switches the chest into a tank. Mutually exclusive with {@link #ENERGY_UPGRADE_CARD}. */
-    public static final DeferredItem<ChestUpgradeCardItem> FLUID_UPGRADE_CARD =
-            ITEMS.registerItem("fluid_upgrade_card", ChestUpgradeCardItem::new);
+    /** Switches the chest into a tank. Goes in the mode slot, not an upgrade slot. */
+    public static final DeferredItem<ChestModeCardItem> FLUID_UPGRADE_CARD =
+            ITEMS.registerItem("fluid_upgrade_card", ChestModeCardItem::new);
 
-    /** Switches the chest into an FE buffer. Mutually exclusive with {@link #FLUID_UPGRADE_CARD}. */
-    public static final DeferredItem<ChestUpgradeCardItem> ENERGY_UPGRADE_CARD =
-            ITEMS.registerItem("energy_upgrade_card", ChestUpgradeCardItem::new);
+    /** Switches the chest into an FE buffer. Goes in the mode slot, not an upgrade slot. */
+    public static final DeferredItem<ChestModeCardItem> ENERGY_UPGRADE_CARD =
+            ITEMS.registerItem("energy_upgrade_card", ChestModeCardItem::new);
 
 
     public static void register(IEventBus eventBus){

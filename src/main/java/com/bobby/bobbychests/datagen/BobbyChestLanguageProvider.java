@@ -22,8 +22,9 @@ public final class BobbyChestLanguageProvider extends LanguageProvider {
         this.add("item.bobbychests.retain_items_upgrade_card", "Retain Items Upgrade");
         this.add("item.bobbychests.lock_upgrade_card", "Lock Upgrade");
         this.add("item.bobbychests.deep_storage_upgrade_card", "Deep Storage Upgrade");
-        this.add("item.bobbychests.fluid_upgrade_card", "Fluid Upgrade");
-        this.add("item.bobbychests.energy_upgrade_card", "Energy Upgrade");
+        // Mode cards, not upgrades: they change what the chest stores rather than how it behaves.
+        this.add("item.bobbychests.fluid_upgrade_card", "Fluid Mode");
+        this.add("item.bobbychests.energy_upgrade_card", "Energy Mode");
 
         this.add("gui.bobbychests.tab.upgrades", "Upgrades");
         this.add("gui.bobbychests.tab.lock", "Lock");
@@ -32,8 +33,10 @@ public final class BobbyChestLanguageProvider extends LanguageProvider {
         this.add("gui.bobbychests.upgrade.deny.deep_vs_network", "Cannot use Deep Storage with Networking");
         this.add("gui.bobbychests.upgrade.deny.network_vs_deep", "Cannot use Networking with Deep Storage");
         this.add("gui.bobbychests.upgrade.deny.deep_tier_not_allowed", "Deep Storage is only for Dirt and Wooden chests");
-        this.add("gui.bobbychests.upgrade.deny.fluid_vs_energy", "Cannot use Fluid with Energy");
-        this.add("gui.bobbychests.upgrade.deny.energy_vs_fluid", "Cannot use Energy with Fluid");
+        this.add("gui.bobbychests.tab.mode", "Mode");
+        this.add("gui.bobbychests.upgrade.deny.mode_not_upgrade", "Mode cards go in the Mode tab");
+        this.add("gui.bobbychests.mode.deny.upgrade_not_mode", "Upgrades go in the Upgrades tab");
+        this.add("gui.bobbychests.mode.deny.not_a_mode_card", "Only Fluid or Energy cards fit here");
         this.add("gui.bobbychests.upgrade.deny.not_empty", "Empty the chest first");
         this.add("gui.bobbychests.upgrade.deny.deep_vs_resource", "Deep Storage only works with items");
         this.add("gui.bobbychests.upgrade.deny.leave_last_vs_resource", "Leave-Last only works with items");

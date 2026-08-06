@@ -23,7 +23,12 @@ public final class BobbyChestItemTags extends ItemTagsProvider {
                 ModItems.LEAVE_LAST_ITEM_UPGRADE_CARD.get(),
                 ModItems.RETAIN_ITEMS_UPGRADE_CARD.get(),
                 ModItems.LOCK_UPGRADE_CARD.get(),
-                ModItems.DEEP_STORAGE_UPGRADE_CARD.get(),
+                ModItems.DEEP_STORAGE_UPGRADE_CARD.get()
+        );
+
+        // Kept out of UPGRADE_CARDS on purpose: mode cards have their own slot and the two tags are
+        // what the slot restrictions test against.
+        tag(BobbyChestTags.MODE_CARDS).add(
                 ModItems.FLUID_UPGRADE_CARD.get(),
                 ModItems.ENERGY_UPGRADE_CARD.get()
         );
