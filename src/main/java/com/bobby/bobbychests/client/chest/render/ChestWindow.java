@@ -49,7 +49,7 @@ public final class ChestWindow {
     public static final float INTERIOR_CEILING = 9.98F;
 
     /**
-     * Sprite region used for the inner walls: a base side face, at texture {@code u 0..14,
+     * Sprite region used for the inner side walls: a base side face, at texture {@code u 0..14,
      * v 33..43} — the same region the port is punched out of.
      *
      * <p>Deliberately the cut region, so the inner walls carry the same holes the outer ones do.
@@ -62,6 +62,19 @@ public final class ChestWindow {
     public static final float INTERIOR_V0 = 33.0F / 64.0F;
     public static final float INTERIOR_V1 = 43.0F / 64.0F;
 
+    /**
+     * Sprite region for the interior floor and ceiling: the exterior bottom face of the base box,
+     * at texture {@code u 28..42, v 19..33}.
+     *
+     * <p>That UV is never cut by the fluid window mask (ports live only on the side faces), so the
+     * floor / ceiling stay solid wood when looking in through a port. Reusing the cut side-face
+     * region here used to punch a matching hole into the bottom of the tank.
+     */
+    public static final float FLOOR_U0 = 28.0F / 64.0F;
+    public static final float FLOOR_U1 = 42.0F / 64.0F;
+    public static final float FLOOR_V0 = 19.0F / 64.0F;
+    public static final float FLOOR_V1 = 33.0F / 64.0F;
+
     /** Top of the liquid cube at {@code fill} of capacity. */
     public static float contentTop(float fill) {
         float clamped = clamp(fill);
@@ -70,9 +83,15 @@ public final class ChestWindow {
 
     // --- Energy: a meter painted on the chest surface --------------------------------------------
 
-    /** Meter rect on each side face, matching the energy overlay's {@code (4, 2, 6, 6)}. */
-    public static final float METER_MIN_X = BOX_ORIGIN + 4.0F;
-    public static final float METER_MAX_X = BOX_ORIGIN + 4.0F + 6.0F;
+    /**
+     * Lit fill on each side face.
+     *
+     * <p>The energy overlay window is {@code (4, 2, 6, 6)} with a 1px frame around a dark track.
+     * Horizontal bounds are inset by one so the fill stays inside that track and does not paint
+     * over the frame borders.
+     */
+    public static final float METER_MIN_X = BOX_ORIGIN + 4.0F + 1.0F;
+    public static final float METER_MAX_X = BOX_ORIGIN + 4.0F + 6.0F - 1.0F;
     public static final float METER_MIN_Y = BOX_HEIGHT - 2.0F - 6.0F;
     public static final float METER_MAX_Y = BOX_HEIGHT - 2.0F;
 

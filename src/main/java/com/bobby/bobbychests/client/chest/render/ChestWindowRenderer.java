@@ -95,19 +95,23 @@ final class ChestWindowRenderer {
             float v0 = cellSprite.getV0();
             float v1 = cellSprite.getV(span(top - ChestWindow.METER_MIN_Y));
 
-            int color = state.tint;
+            // Force full alpha: the charge tint is opaque colour only; cutout must not soft-blend.
+            int color = 0xFF000000 | (state.tint & 0x00FFFFFF);
             int light = state.lightCoords;
 
-            // -Z
+            // face() UVs assume corners run bottom→top on the u0 edge, then across to u1.
+            // Winding must still face outward, so +Z / -X start on the opposite side of the rect
+            // from -Z / +X (otherwise the banding reads as a 90° rotate).
+            // -Z (front)
             face(buffer, pose, color, light, 0.0F, 0.0F, -1.0F, u0, u1, v0, v1,
                     lo, y0, near, lo, y1, near, hi, y1, near, hi, y0, near);
-            // +Z
+            // +Z (back)
             face(buffer, pose, color, light, 0.0F, 0.0F, 1.0F, u0, u1, v0, v1,
-                    lo, y0, far, hi, y0, far, hi, y1, far, lo, y1, far);
-            // -X
+                    hi, y0, far, hi, y1, far, lo, y1, far, lo, y0, far);
+            // -X (right when facing front)
             face(buffer, pose, color, light, -1.0F, 0.0F, 0.0F, u0, u1, v0, v1,
-                    near, y0, lo, near, y0, hi, near, y1, hi, near, y1, lo);
-            // +X
+                    near, y0, hi, near, y1, hi, near, y1, lo, near, y0, lo);
+            // +X (left when facing front)
             face(buffer, pose, color, light, 1.0F, 0.0F, 0.0F, u0, u1, v0, v1,
                     far, y0, lo, far, y1, lo, far, y1, hi, far, y0, hi);
         });
@@ -116,8 +120,9 @@ final class ChestWindowRenderer {
     /**
      * The chest's inner walls, floor and ceiling, wound inward so only the far side is drawn.
      *
-     * <p>Textured from a cut side-face region on purpose, so the inner walls carry the same ports
-     * the outer ones do and the chest reads as hollow all the way through.
+     * <p>Side walls reuse the cut side-face UV so ports read hollow through the tank. Floor and
+     * ceiling use the solid exterior-bottom UV — never the cut region — so looking in does not
+     * open a window in the bottom of the chest.
      */
     private static void interiorBox(
             VertexConsumer buffer, PoseStack.Pose pose, TextureAtlasSprite sprite, int light) {
@@ -131,6 +136,11 @@ final class ChestWindowRenderer {
         float u1 = sprite.getU(ChestWindow.INTERIOR_U1);
         float v0 = sprite.getV(ChestWindow.INTERIOR_V0);
         float v1 = sprite.getV(ChestWindow.INTERIOR_V1);
+
+        float floorU0 = sprite.getU(ChestWindow.FLOOR_U0);
+        float floorU1 = sprite.getU(ChestWindow.FLOOR_U1);
+        float floorV0 = sprite.getV(ChestWindow.FLOOR_V0);
+        float floorV1 = sprite.getV(ChestWindow.FLOOR_V1);
 
         // Slightly darkened: these are interior surfaces and should not read as brightly as the
         // outside of the chest sitting right next to them.
@@ -150,11 +160,11 @@ final class ChestWindowRenderer {
         // +X wall, seen from -X
         face(buffer, pose, color, light, -1.0F, 0.0F, 0.0F, u0, u1, v0, v1,
                 hi, y0, lo, hi, y0, hi, hi, y1, hi, hi, y1, lo);
-        // Floor, seen from above
-        face(buffer, pose, color, light, 0.0F, 1.0F, 0.0F, u0, u1, v0, v1,
+        // Floor, seen from above — solid bottom-face UV, not the cut side face
+        face(buffer, pose, color, light, 0.0F, 1.0F, 0.0F, floorU0, floorU1, floorV0, floorV1,
                 lo, y0, lo, lo, y0, hi, hi, y0, hi, hi, y0, lo);
-        // Ceiling, seen from below
-        face(buffer, pose, color, light, 0.0F, -1.0F, 0.0F, u0, u1, v0, v1,
+        // Ceiling, seen from below — same solid wood
+        face(buffer, pose, color, light, 0.0F, -1.0F, 0.0F, floorU0, floorU1, floorV0, floorV1,
                 lo, y1, lo, hi, y1, lo, hi, y1, hi, lo, y1, hi);
     }
 

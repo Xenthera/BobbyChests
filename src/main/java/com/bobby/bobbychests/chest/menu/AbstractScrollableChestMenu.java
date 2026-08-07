@@ -1,5 +1,6 @@
 package com.bobby.bobbychests.chest.menu;
 
+import com.bobby.bobbychests.chest.upgrade.ChestModeCards;
 import com.bobby.bobbychests.chest.upgrade.ChestUpgradeManager;
 import com.bobby.bobbychests.network.SetScrollableChestScrollPayload;
 import com.bobby.bobbycore.client.gui.layout.GuiLayout;
@@ -205,9 +206,18 @@ public abstract class AbstractScrollableChestMenu extends AbstractChestMenu {
                 return ItemStack.EMPTY;
             }
         } else {
-            if (ChestUpgradeManager.isUpgradeCard(stack)) {
+            if (ChestModeCards.isModeCard(stack)) {
+                // Keep parity with AbstractChestMenu: mode cards are not upgrade cards, so without
+                // this branch they fall into logical storage instead of the mode slot.
+                boolean movedToMode = this.isModeSlotActive()
+                        && this.moveItemStackTo(stack, this.getModeSlotIndex(), this.getModeSlotIndex() + 1, false);
+                if (!movedToMode && !this.moveItemStackToLogicalChest(stack)) {
+                    return ItemStack.EMPTY;
+                }
+            } else if (ChestUpgradeManager.isUpgradeCard(stack)) {
+                // Stop before the mode slot — same range intent as AbstractChestMenu.
                 boolean movedToUpgrade = this.areUpgradeSlotsActive()
-                        && this.moveItemStackTo(stack, this.getFirstUpgradeSlotIndex(), this.getFirstPlayerSlotIndex(), false);
+                        && this.moveItemStackTo(stack, this.getFirstUpgradeSlotIndex(), this.getModeSlotIndex(), false);
                 if (!movedToUpgrade && !this.moveItemStackToLogicalChest(stack)) {
                     return ItemStack.EMPTY;
                 }
